@@ -1,0 +1,17 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Game View pages
+GET     /view                       controllers.GameView.index
+GET     /view/room                  controllers.GameView.room
+GET     /view/signal                controllers.GameView.signal
+GET		/view/logout			    controllers.GameView.logout
+POST	/view/login				    controllers.GameView.login
+
+# Game Controller pages
+GET		/controller                           controllers.GameController.index
+POST	/controller/login				      controllers.GameController.login
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
