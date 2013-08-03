@@ -1,5 +1,5 @@
 <projectDescription>
-  <name>LiveGame</name>
+  <name>websocket-chat</name>
   <buildSpec>
     <buildCommand>
       <name>org.scala-ide.sdt.core.scalabuilder</name>

@@ -18,7 +18,7 @@
                     <a class="brand" href="@routes.GameView.index()">Websocket Chat-Room</a>
                     @connected.map { roomname =>
                         <p class="pull-right">
-                            Logged in as @roomname <a href="@routes.GameView.dologout">Disconnect</a>
+                            Logged in as @roomname <a href="@routes.GameView.logout">Disconnect</a>
                         </p>
                     }.getOrElse {
                        

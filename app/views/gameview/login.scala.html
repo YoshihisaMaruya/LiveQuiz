@@ -1,0 +1,24 @@
+@(myform : Form[models.form.GameViewForm.login.LoginForm])(implicit flash: Flash)
+@import helper._
+
+@views.html.common.login{ @helper.form(action = routes.GameView.dologin,'id -> "login"){
+<h1>LiveGame</h1>
+<fieldset id="inputs">
+	@defining(myform("roomname")) { uidField => 
+	<input type="text" name="@uidField.name" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name" autofocus required>
+	} 
+	
+	@defining(myform("key")) { uidField => 
+	<input type="password" name="@uidField.name" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name">
+	} 
+	
+	@select(
+    field = myform("maxpeople")
+	  , options = options(("1" -> "1"), ("2" -> "2"),("3" -> "3"), ("4" -> "4"))
+	  , '_label -> "最大人数"
+	)
+</fieldset>
+<fieldset id="actions">
+	<input type="submit" id="submit" value="Login">
+</fieldset>
+} }

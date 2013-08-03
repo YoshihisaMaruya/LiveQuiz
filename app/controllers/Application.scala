@@ -9,9 +9,12 @@ import akka.actor._
 import scala.concurrent.duration._
 import play.api.data.Form
 import play.api.data.Forms._
+import play.mvc.Results.Todo
+import views.html.defaultpages.todo
+import models.form.GameViewForm
 
 object GameView extends Controller {
-
+  import models.form.{GameViewForm => Form}
   val ROOMNAME = "roomname"
 
   /**
@@ -30,37 +33,37 @@ object GameView extends Controller {
    */
   def index = Action { implicit request =>
     isLogin({
-      u => Redirect(routes.Game.room())
+      u => Redirect(routes.GameView.room())
     }, {
-      Ok(views.html.game.index())
+      val form = Form.login.form
+      Ok(views.html.gameview.login(form))
     })
   }
 
   /**
    * do login
    */
-  def login = Action { implicit request =>
-    case class LoginForm(roomname: String, password: String)
-    val form = Form(mapping("roomname" -> text, "password" -> text)(LoginForm.apply)(LoginForm.unapply))
-    val d = form.bindFromRequest.get
-    if (!GameRoomMonitor.isExsist(d.roomname)) { //roomnameが被らないか確認 
-      Redirect(routes.Game.room()).withCookies(Cookie(ROOMNAME, d.roomname, Option(24000))) //cookieに値を保存
+  def dologin = Action { implicit request =>
+    val b = Form.login.bind
+    println(b)
+    if (!GameRoomMonitor.isExsist(b.roomname)) { //roomnameが被らないか確認 
+      Redirect(routes.GameView.room()).withCookies(Cookie(ROOMNAME, b.roomname, Option(24000))) //cookieに値を保存
     } else {
-      Redirect(routes.Game.index).flashing("error" -> "The room name has already existed")
+      Redirect(routes.GameView.index).flashing("error" -> "The room name has already existed")
     }
   }
 
   /**
    * do logout
    */
-  def logout = Action { implicit request =>
+  def dologout = Action { implicit request =>
     isLogin({ u =>
       {
         GameRoomMonitor.delete(u)
-        Redirect(routes.Game.index).withCookies(Cookie(ROOMNAME, "hoge", Option(-1)))
+        Redirect(routes.GameView.index).withCookies(Cookie(ROOMNAME, "hoge", Option(-1)))
       }
     }, {
-      Redirect(routes.Game.index).flashing("error" -> "Please choose a valid username.")
+      Redirect(routes.GameView.index).flashing("error" -> "Please choose a valid username.")
     })
   }
 
@@ -69,10 +72,10 @@ object GameView extends Controller {
    */
   def room = Action { implicit request =>
     isLogin({
-      u => Ok(views.html.game.room(u))
+      u => Ok(views.html.gameview.room(u))
     },
       {
-        Redirect(routes.Game.index).flashing("error" -> "Please choose a valid username.")
+        Redirect(routes.GameView.index).flashing("error" -> "Please choose a valid username.")
       })
   }
 
@@ -92,20 +95,18 @@ object GameView extends Controller {
  * This controller for game controller
  */
 object GameController extends Controller {
-  object LoginForm{
-      case class LoginForm(roomname: String, password: String)
-  }
-  private object Session {
-    val USERNAME = "username"
-    val ROOMNAME = "roomname"
-    val TEAM = "team"
+  import models.form.{GameControllerForm => Form}
+ 
+  /**
+   * Login状態をチェックする
+   */
+  private object LoginChecker {
+    val USERNAME = "game_controller_username"
+    val KEY = "game_controller_key"
+    val GROUP = "game_controller_group"
       
-    val form = Form(mapping("roomname" -> text, "password" -> text)(LoginForm.apply)(LoginForm.unapply))
-    val d = form.bindFromRequest.get
-    def bind()
-
-    def isLogin(success: String => Result, failed: => Result)(implicit request: Request[AnyContent]) = {
-      request.cookies.get(ROOMNAME).map { u =>
+    def is(success: String => Result, failed: => Result)(implicit request: Request[AnyContent]) = {
+      request.cookies.get(USERNAME).map { u =>
         success(u.value)
       }.getOrElse {
         failed
@@ -116,26 +117,18 @@ object GameController extends Controller {
   /**
    * Just display the home page.
    */
-  def index = Action { implicit request =>
-    isLogin({
-      u => Redirect(routes.Game.room())
+  def login = Action { implicit request =>
+    LoginChecker.is({
+      u => Ok(u)
     }, {
-      Ok(views.html.game.index())
+      val form = Form.login.form
+      Ok(views.html.gamecontroller.login(form))
     })
   }
 
   /**
    * do login
    */
-  def login = Action { implicit request =>
-    case class LoginForm(roomname: String, password: String)
-    val form = Form(mapping("roomname" -> text, "password" -> text)(LoginForm.apply)(LoginForm.unapply))
-    val d = form.bindFromRequest.get
-    if (!GameRoomMonitor.isExsist(d.roomname)) { //roomnameが被らないか確認 
-      Redirect(routes.Game.room()).withCookies(Cookie(ROOMNAME, d.roomname, Option(24000))) //cookieに値を保存
-    } else {
-      Redirect(routes.Game.index).flashing("error" -> "The room name has already existed")
-    }
-  }
+  def dologin = TODO
 
 }

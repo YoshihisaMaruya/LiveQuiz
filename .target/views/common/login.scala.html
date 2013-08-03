@@ -1,10 +1,9 @@
-@()(implicit flash: Flash)
-
+@(form : Html)(implicit flash: Flash)
 <!DOCTYPE html>
 
 <html>
 <head>
-<title>Race</title>
+<title>LiveGame</title>
 <style>
 
 html, body
@@ -36,7 +35,6 @@ body
     background-image: -ms-linear-gradient(top, #fff, #eee);
     background-image: -o-linear-gradient(top, #fff, #eee);
     background-image: linear-gradient(top, #fff, #eee);  
-    height: 240px;
     width: 400px;
     margin: -150px 0 0 -230px;
     padding: 30px;
@@ -276,15 +274,6 @@ fieldset
         
     }
     
-<form action="@routes.Game.login()" id="login" method="post">
-    <h1>Rooms</h1>
-    <fieldset id="inputs">
-        <input name="roomname" type="text" placeholder="RoomName" id="username" autofocus required>   
-        <input name="password" type="password" id="password" placeholder="Password(not requeired)">
-    </fieldset>
-    <fieldset id="actions">
-        <input type="submit" id="submit" value="Create">
-    </fieldset>
-</form>
+	@form
 </body>
 </html>
