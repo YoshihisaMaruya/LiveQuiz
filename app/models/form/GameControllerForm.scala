@@ -12,6 +12,9 @@ object GameControllerForm {
   
     def apply = form
     
-    def bind(implicit request: Request[AnyContent]) = form.bindFromRequest.get
+    def bind(implicit request: Request[AnyContent]) = {
+      println(form.bindFromRequest)
+      form.bindFromRequest.get
+    }
   }
 }

@@ -6,11 +6,11 @@
 <fieldset id="inputs">
 
 	@defining(myform("roomname")) { uidField => 
-	 <input type="text" name="username" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name" autofocus required>
+	 <input type="text" name="@uidField.name" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name" autofocus required>
 	}  
 	
 	@defining(myform("key")) { uidField => 
-	<input type="password" name="@uidField.name" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name" autofocus required>
+	<input type="password" name="@uidField.name" id="@uidField.id" value="@uidField.value" placeholder="@uidField.name">
 	} 
 	
 	@defining(myform("username")) { uidField => 

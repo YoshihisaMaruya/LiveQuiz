@@ -3,15 +3,24 @@
 # ~~~~
 
 # Game View pages
-GET     /view                       controllers.GameView.index
-GET     /view/room                  controllers.GameView.room
-GET     /view/signal                controllers.GameView.signal
-GET		/view/dologout			    controllers.GameView.dologout
-POST	/view/dologin				    controllers.GameView.dologin
+GET    /view                  controllers.GameView.login
+GET    /view/main             controllers.GameView.main
+
+GET    /view/dologout         controllers.GameView.dologout
+POST   /view/dologin          controllers.GameView.dologin
+
+##websocket
+GET    /view/signal           controllers.GameView.signal 
 
 # Game Controller pages
-GET		/controller                           controllers.GameController.login
-POST	/controller/dologin				      controllers.GameController.dologin
+GET    /controller            controllers.GameController.login
+GET    /controller/main       controllers.GameController.main
+
+POST   /controller/dologin    controllers.GameController.dologin
+GET    /controller/dologout   controllers.GameController.dologout
+
+##websocket
+GET    /controller/signal     controllers.GameController.signal 
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET    /assets/*file          controllers.Assets.at(path="/public", file)

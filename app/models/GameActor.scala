@@ -45,6 +45,7 @@ object GameRoomMonitor {
   def create(roomname: String) = {
     val actor = Akka.system.actorOf(Props[GameRoomActor], roomname)
     rooms += (roomname -> actor.path.toString)
+    println("@ create actor : " + actor.path + ", executed actors " + rooms)
     Robot(actor)
 
     (actor ? Join(roomname)).map {
@@ -84,6 +85,7 @@ object GameRoomMonitor {
    */
   def delete(roomname: String) = {
     val actor = Akka.system.actorFor(rooms.get(roomname).get) // TODO : Optionのチェック
+    println("@ delete actor : " + actor.path + " , executed actor : " + rooms)
     actor ! Kill // kill actor
     rooms.remove(roomname)
   }
