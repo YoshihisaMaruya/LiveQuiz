@@ -19,6 +19,11 @@ GET    /controller/main       controllers.GameController.main
 POST   /controller/dologin    controllers.GameController.dologin
 GET    /controller/dologout   controllers.GameController.dologout
 
+##for ajax
+
+GET	   /controller/ajax		  controllers.GameController.ajax(pushed: Option[String] ?= None)
+GET	   /controller/javascriptRoutes    controllers.GameController.javascriptRoutes
+
 ##websocket
 GET    /controller/signal     controllers.GameController.signal 
 

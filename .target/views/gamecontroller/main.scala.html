@@ -1,27 +1,89 @@
 @(roomname: String,username : String, team : String)(implicit request: RequestHeader)
 
 @body(Some(roomname)) {
-    
+	
+	
     <div class="page-header">
-        <h1>Welcome to the chat room <small>You are chatting as @roomname</small></h1>
+        <h1>Controller <small>room : @roomname, user : @username, team : @team</small></h1>
     </div>
-    
+
+    <div class = "controller">
+    	<ul>
+    	<li><button id="up" name="up"><img src="@routes.Assets.at("images/controller/up.png")"></button></li>
+    	<li>
+    	<button id="left" name="left"><img src="@routes.Assets.at("images/controller/left.png")" id="left"></button>
+    	<button id="right" name="right"><img src="@routes.Assets.at("images/controller/right.png")" id="right"></button>
+    	</li>
+    	<li><button id="down" name="down"><img src="@routes.Assets.at("images/controller/down.png")" id="down"></button></li>
+    	</ul>
+    </div>
     <div id="onError" class="alert-message error">
         <p>
             <strong>Oops!</strong> <span></span>
         </p>
     </div>
     
-    <div id="onChat" class="row">
-        <div class="span10" id="main">
-            <div id="messages">
-            </div>
-            <textarea id="talk"></textarea>
-        </div>
-        <div class="span4">
-            <h2>Members</h2>
-            <ul id="members">
-            </ul>
-        </div>
-    </div>
+    
+    <script type="text/javascript" charset="utf-8">
+
+	$('#up').click(function(e) {
+	    $.ajax({
+	        type : 'GET',
+	        url : '@routes.GameController.ajax()',
+	        data : {
+	            pushed : "up"
+	        },
+	        success : function(data) {
+	            
+	        }
+	    });
+	    return false;
+	});
+	
+	$('#left').click(function(e) {
+	    $.ajax({
+	        type : 'GET',
+	        url : '@routes.GameController.ajax()',
+	        data : {
+	        	pushed : "left"
+	        },
+	        success : function(data) {
+	            
+	        }
+	    });
+	    return false;
+	});
+	
+	$('#right').click(function(e) {
+	    $.ajax({
+	        type : 'GET',
+	        url : '@routes.GameController.ajax()',
+	        data : {
+	        	pushed : "right"
+	        },
+	        success : function(data) {
+	            
+	        }
+	    });
+	    return false;
+	});
+	
+	$('#down').click(function(e) {
+	    $.ajax({
+	        type : 'GET',
+	        url : '@routes.GameController.ajax()',
+	        data : {
+	        	pushed : "down"
+	        },
+	        success : function(data) {
+	            
+	        }
+	    });
+	    return false;
+	});
+	
+    
+    </script>
+    
+    
 }

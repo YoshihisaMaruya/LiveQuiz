@@ -14,7 +14,7 @@ import scala.collection.mutable.ListBuffer
 
 object Robot {
 
-  def apply(chatRoom: ActorRef) {
+  def apply(chatRoom : ActorRef) {
 
     // Create an Iteratee that logs all messages to the console.
     val loggerIteratee = Iteratee.foreach[JsValue](event => Logger("robot").info(event.toString))
@@ -40,9 +40,9 @@ object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
   implicit val timeout = Timeout(1 second)
 
-  private val rooms: MMap[String, String] = MMap.empty
+  private val rooms : MMap[String, String] = MMap.empty
 
-  def create(roomname: String) = {
+  def create(roomname : String) = {
     val actor = Akka.system.actorOf(Props[GameRoomActor], roomname)
     rooms += (roomname -> actor.path.toString)
     println("@ create actor : " + actor.path + ", executed actors " + rooms)
@@ -78,21 +78,31 @@ object GameRoomMonitor {
   /**
    * check
    */
-  def isExsist(roomname: String) = rooms.keys.exists(r => r == roomname)
+  def isExsist(roomname : String) = rooms.keys.exists(r => r == roomname)
 
+  /**
+   * get actor
+   */
+
+  def get(roomname : String) = {
+    if (isExsist(roomname)) Some(Akka.system.actorFor(rooms.get(roomname).get)) // TODO : Optionのチェック
+    else None
+  }
   /**
    * delete game room
    */
-  def delete(roomname: String) = {
-    val actor = Akka.system.actorFor(rooms.get(roomname).get) // TODO : Optionのチェック
-    println("@ delete actor : " + actor.path + " , executed actor : " + rooms)
-    actor ! Kill // kill actor
-    rooms.remove(roomname)
+  def delete(roomname : String) = {
+    val actor = get(roomname)
+    actor.map { a =>
+      println("@ delete actor : " + a.path + " , executed actor : " + rooms)
+      a ! Kill // kill actor
+      rooms.remove(roomname)
+    }.getOrElse(println("actor not found"))
   }
 }
 
-object GameController{
-  
+object GameController {
+
 }
 
 class GameRoomActor extends Actor {
@@ -119,6 +129,11 @@ class GameRoomActor extends Actor {
     case Talk(roomname, text) => {
       notifyAll("talk", roomname, text)
     }
+    
+    case ControlSignal(username,key) =>{
+       notifyAll("pushed", username, key.toString)
+    }
+    
 
     case Quit(roomname) => {
       members = members - roomname
@@ -127,7 +142,7 @@ class GameRoomActor extends Actor {
 
   }
 
-  def notifyAll(kind: String, user: String, text: String) {
+  def notifyAll(kind : String, user : String, text : String) {
     val msg = JsObject(
       Seq(
         "kind" -> JsString(kind),
@@ -140,17 +155,32 @@ class GameRoomActor extends Actor {
 
 }
 
-/****
+/**
+ * **
  * these are connection signals
  */
-case class Join(roomname: String)
-case class Quit(roomname: String)
-case class Talk(roomname: String, text: String)
-case class NotifyJoin(roomname: String)
+case class Join(roomname : String)
+case class Quit(roomname : String)
+case class Talk(roomname : String, text : String)
+case class NotifyJoin(roomname : String)
 
-case class Connected(enumerator: Enumerator[JsValue])
-case class CannotConnect(msg: String)
+case class Connected(enumerator : Enumerator[JsValue])
+case class CannotConnect(msg : String)
+
 
 /****
 * these are control signals
 */
+abstract class Group 
+case object A extends Group
+case object B extends Group
+
+abstract class Key
+case object Up extends Key()
+case object Down extends Key()
+case object Left extends Key()
+case object Right extends Key()
+
+case class ControlSignal(username : String,key : Key)
+
+case class Pushed(key : Key)

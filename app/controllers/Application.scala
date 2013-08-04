@@ -38,10 +38,9 @@ object GameView extends Controller {
       if (!GameRoomMonitor.isExsist(b.roomname)) { //roomnameが被らないか確認 
         println("@view login : roomname => " + b.roomname + ", key => " + b.key + ", maxpeople => " + b.maxpeople)
         success.withCookies(
-            Cookie(ROOMNAME, b.roomname, TIMEOUT),
-            Cookie(KEY, b.key, TIMEOUT),
-            Cookie(MAXPEOPLE, b.maxpeople, TIMEOUT)
-            ) //cookieに値を保存
+          Cookie(ROOMNAME, b.roomname, TIMEOUT),
+          Cookie(KEY, b.key, TIMEOUT),
+          Cookie(MAXPEOPLE, b.maxpeople, TIMEOUT)) //cookieに値を保存
       } else {
         failed
       }
@@ -49,25 +48,23 @@ object GameView extends Controller {
 
     def logout(success : => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
       is({ r =>
-        { 
+        {
           println("@view logout : roomname => " + r)
           GameRoomMonitor.delete(r)
           success.withCookies(
-              Cookie(ROOMNAME, "hoge", NULLTIME),
-              Cookie(KEY, "hoge", NULLTIME),
-              Cookie(MAXPEOPLE, "hoge", NULLTIME)
-              )
+            Cookie(ROOMNAME, "hoge", NULLTIME),
+            Cookie(KEY, "hoge", NULLTIME),
+            Cookie(MAXPEOPLE, "hoge", NULLTIME))
         }
       }, {
         failed
       })
     }
 
-    
-    def values(implicit request : Request[AnyContent])  = {
-      
+    def values(implicit request : Request[AnyContent]) = {
+
     }
-    
+
     def roomname(implicit request : Request[AnyContent]) =
       {
         request.cookies.get(ROOMNAME).map { u =>
@@ -121,7 +118,7 @@ object GameView extends Controller {
    */
   def main = Action { implicit request =>
     User.is({
-        u => Ok(views.html.gameview.main(u))
+      u => Ok(views.html.gameview.main(u))
     },
       {
         Redirect(routes.GameView.login).flashing("error" -> "Please choose a valid username.")
@@ -159,42 +156,47 @@ object GameController extends Controller {
     val TIMEOUT = Option(24000)
     val NULLTIME = Option(-1)
 
-    def is(success : (String,String,String) => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
-      
-      (request.cookies.get(ROOMNAME),request.cookies.get(USERNAME),request.cookies.get(TEAM)) match{
-        case (Some(r),Some(u),Some(t)) => {
+    def is(success : (String, String, String) => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
+      (request.cookies.get(ROOMNAME), request.cookies.get(USERNAME), request.cookies.get(TEAM)) match {
+        case (Some(r), Some(u), Some(t)) => {
           println("@controller connect : roomname => " + r.value + ", username => " + u.value + ", team => " + t.value)
-          success(r.value,u.value,t.value) 
+          success(r.value, u.value, t.value)
         }
-        case (_,_,_) => failed
+        case (_, _, _) => failed
       }
     }
     
-    def login(success : => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
-       val b = Form.login.bind
-       println("@controller login : roomname => " + b.roomname + ", key => " + b.key + ", username => " + b.username + ", team => " + b.team)
-        success.withCookies(
-            Cookie(ROOMNAME, b.roomname, TIMEOUT),
-            Cookie(USERNAME, b.username, TIMEOUT),
-            Cookie(KEY, b.key, TIMEOUT),
-            Cookie(TEAM, b.team, TIMEOUT)
-        ) //cookieに値を保存
-     
-
-       // failed
-      
+    def values(implicit request : Request[AnyContent]) = {
+      (request.cookies.get(ROOMNAME), request.cookies.get(USERNAME), request.cookies.get(TEAM)) match {
+        case (Some(r), Some(u), Some(t)) => {
+        	Some(r.value,u.value,t.value)
+        }
+        case (_,_,_) => None
+      }
     }
-    
+
+    def login(success : => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
+      val b = Form.login.bind
+      println("@controller login : roomname => " + b.roomname + ", key => " + b.key + ", username => " + b.username + ", team => " + b.team)
+      success.withCookies(
+        Cookie(ROOMNAME, b.roomname, TIMEOUT),
+        Cookie(USERNAME, b.username, TIMEOUT),
+        Cookie(KEY, b.key, TIMEOUT),
+        Cookie(TEAM, b.team, TIMEOUT)) //cookieに値を保存
+
+      // failed
+
+    }
+
     def logout(success : => Result, failed : => Result)(implicit request : Request[AnyContent]) = {
-      is({ (r,u,t) =>
+      is({ (r, u, t) =>
         {
           println("@controller logout : roomname => " + r + ", username => " + u + ", team => " + t)
           success.withCookies(
-              Cookie(ROOMNAME, "hoge", NULLTIME),
-              Cookie(USERNAME, "hoge", NULLTIME),
-              Cookie(KEY, "hoge", NULLTIME),
-              Cookie(TEAM, "hoge", NULLTIME)
-            ) //cookieの値を消去
+            Cookie(ROOMNAME, "hoge", NULLTIME),
+            Cookie(USERNAME, "hoge", NULLTIME),
+            Cookie(KEY, "hoge", NULLTIME),
+            Cookie(TEAM, "hoge", NULLTIME)) //cookieの値を消去
         }
       }, {
         failed
@@ -207,7 +209,7 @@ object GameController extends Controller {
    */
   def login = Action { implicit request =>
     User.is({
-      (r,u,t) =>  Redirect(routes.GameController.main())
+      (r, u, t) => Redirect(routes.GameController.main())
     }, {
       val form = Form.login.form
       Ok(views.html.gamecontroller.login(form))
@@ -220,23 +222,54 @@ object GameController extends Controller {
   def dologin = Action { implicit request =>
     User.login(Redirect(routes.GameController.main()), Redirect(routes.GameController.login).flashing("error" -> "The room name has already existed"))
   }
-  
+
   def dologout = Action { implicit request =>
-  	User.logout(Redirect(routes.GameController.login()), Redirect(routes.GameController.login).flashing("error" -> "ろぐいんしてへんよ"))
+    User.logout(Redirect(routes.GameController.login()), Redirect(routes.GameController.login).flashing("error" -> "ろぐいんしてへんよ"))
   }
-  
+
   def main = Action { implicit request =>
-  	User.is({
-        (r,u,t) => Ok(views.html.gamecontroller.main(r,u,t))
-  	}, {
-  	    Redirect(routes.GameController.login).flashing("error" -> "なんかまちがってるよ")
-  	}
-  	)
-  	
+    User.is({
+      (r, u, t) => Ok(views.html.gamecontroller.main(r, u, t))
+    }, {
+      Redirect(routes.GameController.login).flashing("error" -> "なんかまちがってるよ")
+    })
+  }
+
+  def javascriptRoutes = Action { implicit request =>
+    import routes.javascript._
+    Ok(Routes.javascriptRouter("jsRoutes")(routes.javascript.GameController.ajax)).as("text/javascript")
+  }
+
+  def ajax(pushed : Option[String]) = Action { implicit request =>
+    def pushed_bind(key : String) = {
+      key match {
+      	case "up" => Some(Up) 
+      	case "down" => Some(Down)
+      	case "left" => Some(Left)
+      	case "right" => Some(Right)
+      	case _ => None
+      }
+    }
+    val user_values = User.values
+    val key = pushed.map(p => pushed_bind(p)).getOrElse(None)
+    
+    (user_values,key) match {
+    	case (Some(uv),Some(k)) =>{
+    		GameRoomMonitor.get(uv._1).map{ actor =>{
+    		  val signal = ControlSignal(uv._2,k)
+    	      println("@GameView.ajax : signal => " + signal)
+    		  actor ! signal
+    		}
+    		}.getOrElse(println("@GameView.ajax actor not found"))
+    	}
+    	case (_,_) => println("@GameView.ajax some value not found")
+    }
+    
+   	Ok("Success")
   }
   
   def signal = Action { implicit request =>
-  	Ok("まだ")
+    Ok("まだ")
   }
 
 }
