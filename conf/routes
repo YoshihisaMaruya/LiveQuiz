@@ -2,9 +2,10 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+
 # Game View pages
-GET    /view                  controllers.GameView.login
-GET    /view/main             controllers.GameView.main
+GET    /view         controllers.GameView.index
+GET    /view/login         controllers.GameView.login()
 
 GET    /view/dologout         controllers.GameView.dologout
 POST   /view/dologin          controllers.GameView.dologin
@@ -12,20 +13,28 @@ POST   /view/dologin          controllers.GameView.dologin
 ##websocket
 GET    /view/signal           controllers.GameView.signal 
 
+##wild cart
+#GET    /view/*any                controllers.GameView.login()
+
+
 # Game Controller pages
-GET    /controller            controllers.GameController.login
-GET    /controller/main       controllers.GameController.main
+GET    /controller         controllers.GameController.index
+GET    /controller/login         controllers.GameController.login()
 
 POST   /controller/dologin    controllers.GameController.dologin
 GET    /controller/dologout   controllers.GameController.dologout
 
-##for ajax
-
+##ajax
 GET	   /controller/ajax		  controllers.GameController.ajax(pushed: Option[String] ?= None)
 GET	   /controller/javascriptRoutes    controllers.GameController.javascriptRoutes
 
 ##websocket
 GET    /controller/signal     controllers.GameController.signal 
+
+##wild card
+#GET    /controller/*any            controllers.GameController.login(any)
+
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET    /assets/*file          controllers.Assets.at(path="/public", file)
