@@ -1,7 +1,865 @@
 @(roomname: String)(implicit request: RequestHeader)
 
-@body(Some(roomname)) {
+@head = {
+    <style type="text/css">
+        div#enchant-stage {border: solid 1px #cccccc;}
+    </style>
+    <script type="text/javascript" charset="utf-8">
+    // 夏合宿用ゲーム　落ちゲー
+	// 定数
+	var DROP_ITEM = {
+	    // 自動落下アイテム
+	    BANANA : {frame: 16, score: 10},
+	    APPLE : {frame: 15, score: 50},
+	    MELON : {frame: 18, score: 100},
+	    JEWEL : {frame: 64, score: 500},
+	    PORTION : {frame:12, BAD: {frame:13}},
+	    BOMB : {frame:25, BAD: {frame:24}},
+	    PIG : {frame:22, BAD: {frame:23}},
+	    STAR : {frame: 30}, // FEVER!!
+	    length : 8 // lengthプロパティ 自動で落ちるアイテムの数(おじゃま含まない)
+	};
+
+	var SPEED = {
+	    FAST : 10,
+	    NORMAL : 5,
+	    SLOW : 2
+	};
+
+	var HAVE_ITEM_MAX = 3; // 持てるアイテムの最大値　変更時には要レイアウト変更
+
+	var userAgent = window.navigator.userAgent.toLowerCase();
+	var isChrome = (userAgent.indexOf('chrome') != -1) ? true : false;
+
+	enchant();
+
+	window.onload = function() {
+	    game = new Game(640, 320);
+	    game.fps = 24;
+	    game.preload(['@routes.Assets.at("getbanana/image/chara1.gif")','@routes.Assets.at("getbanana/image/icon0.gif")','@routes.Assets.at("getbanana/image/bg.png")', '@routes.Assets.at("getbanana/image/start.png")',
+	                  '@routes.Assets.at("getbanana/image/end.png")', '@routes.Assets.at("getbanana/image/win.png")', '@routes.Assets.at("getbanana/image/lose.png")', '@routes.Assets.at("getbanana/image/font1.png")',
+	                  '@routes.Assets.at("getbanana/image/frame2.png")', '@routes.Assets.at("getbanana/image/fever3.png")',
+	                  '@routes.Assets.at("getbanana/image/W.png")', '@routes.Assets.at("getbanana/image/I.png")', '@routes.Assets.at("getbanana/image/N.png")', '@routes.Assets.at("getbanana/image/ex_1.png")', '@routes.Assets.at("getbanana/image/ex_2.png")',
+	                  '@routes.Assets.at("getbanana/image/L.png")', '@routes.Assets.at("getbanana/image/O.png")', '@routes.Assets.at("getbanana/image/S.png")', '@routes.Assets.at("getbanana/image/E.png")',
+	                  '@routes.Assets.at("getbanana/image/period_1.png")', '@routes.Assets.at("getbanana/image/period_2.png")', '@routes.Assets.at("getbanana/image/period_3.png")']);
+	                  // sounds se2: 良いアイテム取得 se3:赤ポーション、黒豚(BAD) se6:ポイント se7:fever bomb1:爆弾(bad)
+	    // soundはブラウザによって対応ファイルが違うらしい…やりたいけどめんどくせー Chromeだと順調に動く。Firefoxだとバグる。
+	    if(isChrome) {
+	        // Chromeなら曲を読み込む
+	        console.log("This browser is Chrome.");
+	        game.preload([
+	                  'sound/TWEEPOP_777.wav', 'sound/se2.wav', 'sound/se3.wav',
+	                  'sound/se6.wav', 'sound/se7.wav', 'sound/shot5.wav', 'sound/signal.wav'] );
+	    }
+	    //プリロードする画像を相対パスで指定
+	    
+	    game.score1 = 0;
+	    game.score2 = 0;
+	    
+	    game.feverAt = -1;
+	    game.fever_bonus = 1;
+	    
+	    game.onload = function() {
+	        gameStartScene = new GameStartScene();
+	        gameOverScene = new GameOverScene();
+	        
+	        game.keybind('Z'.charCodeAt(0), 'a'); // xにaボタンをバインドする
+	        game.keybind('X'.charCodeAt(0), 'b');
+	        game.keybind('S'.charCodeAt(0), "space");
+	        
+	        if(isChrome) {
+	            var bgm = game.assets['sound/TWEEPOP_777.wav'];
+	            bgm.play();
+	            bgm.volume = 0.5;
+	            bgm._element.loop = true;
+	            
+	            game.keybind('Q'.charCodeAt(0), 'bgmstop');
+	            
+	            this.addEventListener('bgmstopbuttondown', function() {
+	                                  var bgm = game.assets['sound/TWEEPOP_777.wav'];
+	                                  if(bgm._element.paused == true)
+	                                    bgm.play();
+	                                  else bgm.stop();
+	                                  });
+	        }
+	        game.pushScene(gameStartScene);
+	        
+	    }
+	    game.start();
+	    // プリロードをスタート
+	}
+
+
+	// 引数 num を受け取って、0 から (num - 1) までの乱数を返す関数
+	function rand(num){
+	    return Math.floor(Math.random() * num);
+	}
+	var game_status = {
+    		wait : "wait",
+    	    active : "active",
+    	    start : "start"
+    };
+	var current_game_status = game_status.wait;
+	var GameStartScene = Class.create(Scene,  {
+	                                  initialize: function() {
+	                                  Scene.call(this);
+	                                  
+	                                  // ==== 背景の表示 ====
+	                                  var background = new Sprite(640, 320);  // 320x320 サイズの Sprite オブジェクトを生成
+	                                  background.x = background.y = 0;    // Sprite の左上の x, y 座標を指定
+	                                  background.image = game.assets['@routes.Assets.at("getbanana/image/bg.png")']; // bg.png を指定
+	                                  this.addChild(background);
+	    
+	                                  
+	                                  // ==== ゲーム説明　表示 ====
+	                                  var first_y = 90;
+	                                  var height_diff = 20;
+	                                  
+	                                  var titleLabel = new FontGroup("HOW TO PLAY");
+	                                  titleLabel.x = (game.width-titleLabel.width)/2+10;
+	                                  titleLabel.y = first_y;
+	                                  this.addChild(titleLabel);
+	                                  
+	                                  var explainFrame = new Sprite(386, 250);
+	                                  explainFrame.x = (game.width-explainFrame.width)/2;
+	                                  explainFrame.y = (game.height-explainFrame.height)/2+25;
+	                                  explainFrame.image = game.assets['@routes.Assets.at("getbanana/image/frame2.png")'];
+	                                  this.addChild(explainFrame);
+	                                  
+	                                  // 各アイテム説明 ====
+	                                  var exp = new FontGroupWithSprites("%S... " + DROP_ITEM.BANANA.score +" POINTS",
+	                                                                     DROP_ITEM.BANANA.frame);
+	                                  exp.x = (game.width-exp.width)/2;
+	                                  exp.y = first_y+height_diff*1;
+	                                  this.addChild(exp);
+	                                  
+	                                  exp = new FontGroupWithSprites("%S... " + DROP_ITEM.APPLE.score +" POINTS",
+	                                                                 DROP_ITEM.APPLE.frame);
+	                                  exp.x = (game.width-exp.width)/2;
+	                                  exp.y = first_y+height_diff*2;
+	                                  this.addChild(exp);
+	                                  
+	                                  exp = new FontGroupWithSprites("%S..." + DROP_ITEM.MELON.score +" POINTS",
+	                                                                 DROP_ITEM.MELON.frame);
+	                                  exp.x = (game.width-exp.width)/2;
+	                                  exp.y = first_y+height_diff*3;
+	                                  this.addChild(exp);
+	                                  
+	                                  exp = new FontGroupWithSprites("%S..." + DROP_ITEM.JEWEL.score +" POINTS",
+	                                                                 DROP_ITEM.JEWEL.frame);
+	                                  exp.x = (game.width-exp.width)/2;
+	                                  exp.y = first_y+height_diff*4;
+	                                  this.addChild(exp);
+	                                  
+	                                  exp = new FontGroupWithSprites("%S...FEVER TIME!!!", DROP_ITEM.STAR.frame);
+	                                  exp.x = (game.width-exp.width)/2;
+	                                  exp.y = first_y+height_diff*5;
+	                                  this.addChild(exp);
+	                                  
+	                                  exp = new FontGroup("GOOD");
+	                                  exp.x = 200;
+	                                  exp.y = first_y+height_diff*7;
+	                                  this.addChild(exp);
+	                                  
+	                                  var y = first_y+height_diff*7+32;
+	                                  var x = 190;
+	                                  this.addChild(new Icon0(DROP_ITEM.PORTION.frame, x, y, 2));
+	                                  this.addChild(new Icon0(DROP_ITEM.BOMB.frame, x+32, y, 2));
+	                                  this.addChild(new Icon0(DROP_ITEM.PIG.frame, x+64, y, 2));
+
+	                                  exp = new FontGroup("BAD");
+	                                  exp.x = 380;
+	                                  exp.y = first_y+height_diff*7;
+	                                  this.addChild(exp);
+	                                
+	                                  x = 365;
+	                                  this.addChild(new Icon0(DROP_ITEM.PORTION.BAD.frame, x, y, 2));
+	                                  this.addChild(new Icon0(DROP_ITEM.BOMB.BAD.frame, x+32, y, 2));
+	                                  this.addChild(new Icon0(DROP_ITEM.PIG.BAD.frame, x+64, y, 2));
+
+	                                  // 次シーンへの推移　プレイヤー1の下ボタン
+	                                  this.addEventListener('downbuttondown', function() {
+	                                                        if(current_game_status == game_status.active) {
+	                                                        	current_game_status = game_status.start;
+	                                                        	gameStartCountdown();
+	                                                        }
+	                                                        });
+	                                  }
+	                                  });
+
+	// カウントダウンアニメーション
+	function gameStartCountdown() {
+	    var group = new Group();
+	    gameStartScene.addChild(group);
+	    
+	    var background = new Sprite(640, 320);
+	    background.x = background.y = 0;
+	    background.image = game.assets['@routes.Assets.at("getbanana/image/bg.png")'];
+	    group.addChild(background);
+
+	    // 3, 2, 1のカウントダウン
+	    var countdown_sprite = new Icon0(2, (game.width-18)/2, (game.height-64)/2, 4);
+	    countdown_sprite.tl.cue({
+	                            0: function() {
+	                            if(isChrome) {
+	                            for(var i=0; i<20; i++) { // 緩やかに音量を下げる
+	                                game.assets['sound/TWEEPOP_777.wav'].volume -= 0.01;
+	                            }
+	                            var sound = game.assets['sound/signal.wav'];
+	                            sound.play();
+	                            
+	                            }
+	                            },
+	                         24 : function() {this.frame = 1;},
+	                         48 : function() {this.frame = 0;},
+	                         72 : function() {
+	                            this.tl.hide();
+	                             group.addChild(gameStart_sprite);
+	                         },
+	    });
+	    group.addChild(countdown_sprite);
+	    
+	    // STARTサインの表示
+	    var gameStart_sprite = new Sprite(236, 48);
+	    gameStart_sprite.x = (game.width - gameStart_sprite.width) / 2;
+	    gameStart_sprite.y = (game.height - gameStart_sprite.height) / 2;
+	    gameStart_sprite.image = game.assets['@routes.Assets.at("getbanana/image/start.png")'];
+	    gameStart_sprite.tl.cue({
+	                            24 : function() {
+	                            gameStartScene.removeChild(group);
+	                                  game.popScene();
+	                                  game.pushScene(new GameScene());
+	                                //アニメが終わり次第ゲーム画面に推移
+	                            if(isChrome) {
+	                                for(var i=0; i<20; i++) { // 緩やかに音量を下げる
+	                                    game.assets['sound/TWEEPOP_777.wav'].volume += 0.01;
+	                                }
+	                            }
+	                            }
+	    });
+	};
+
+	// ゲームオーバーシーン　結果画面
+	var GameOverScene = Class.create(Scene,  {
+	 initialize:
+	    function() {
+	     Scene.call(this);
+	                                 
+	                                 // 背景の表示
+	                                 var background = new Sprite(640, 320);
+	                                 background.x = background.y = 0;
+	                                 background.image = game.assets['@routes.Assets.at("getbanana/image/bg.png")'];
+	                                 
+	                                 // ゲームオーバーサインの表示
+	                                 var gameOverSign = new Sprite(189, 97);
+	                                 gameOverSign.x = (game.width - gameOverSign.width) / 2;
+	                                 gameOverSign.y = (game.height - gameOverSign.height) / 5 * 4;
+	                                 gameOverSign.image = game.assets['@routes.Assets.at("getbanana/image/end.png")'];
+	                                 
+	                                 // ===プレイヤー1情報===
+	                                 state1 = new Sprite(253, 130);
+	                                 state1.x = 40;
+	                                 state1.y = 0;
+	                                 this.state1 = state1;
+	                                 
+	                                 var pos = (game.width-16*11*2) / 4;
+	                                 scorelabel1 = new FontGroup("SCORE:");
+	                                 scorelabel1.x = pos;
+	                                 scorelabel1.y = state1.height;
+	                                 
+	                                 this.scorelabel1_score = new ScoreGroup(5);
+	                                 this.scorelabel1_score.x = pos;
+	                                 this.scorelabel1_score.y = state1.height;
+	                                 // ===================
+	                                 
+	                                 // ===プレイヤー2情報===
+	                                 state2 = new Sprite(253, 130);
+	                                 state2.x = (game.width - state2.width)-30;
+	                                 state2.y = 0;
+	                                 this.state2 = state2;
+	                                 
+	                                 
+	                                 scorelabel2 = new FontGroup("SCORE:");
+	                                 pos = game.width - 16*11 - (game.width-16*11*2) / 4;
+	                                 scorelabel2.x = pos;
+	                                 scorelabel2.y = state2.height;
+	                                 
+	                                 this.scorelabel2_score = new ScoreGroup(5);
+	                                 this.scorelabel2_score.x = pos;
+	                                 this.scorelabel2_score.y = state2.height;
+	                                 // ===================
+	                                 
+	                                 this.addChild(background);
+	                                 this.addChild(scorelabel1);
+	                                 this.addChild(this.scorelabel1_score);
+	                                 this.addChild(scorelabel2);
+	                                 this.addChild(this.scorelabel2_score);
+	                                 this.addChild(this.state1);
+	                                 this.addChild(this.state2);
+	                                 this.addChild(gameOverSign);
+	                                 
+	                                 // プレイヤー1の下ボタンで最初のシーンへ
+	                                 this.addEventListener('downbuttondown', function() {
+	                                                       game.popScene();
+	                                                       game.pushScene(gameStartScene);
+	                                                       });
+	        
+	    },
+	                                 // 勝敗を結果画面に反映する
+	                         setScore: function() {
+	                                 
+	                                 var player1_state;
+	                                 console.log("score1: %d", game.score1);
+	                                 console.log("score2: %d", game.score2);
+	                                 
+	                                 this.scorelabel1_score.setScore(game.score1);
+	                                 this.scorelabel2_score.setScore(game.score2)
+	                                 if(game.score1 > game.score2) {
+	                                 state1.image = game.assets['@routes.Assets.at("getbanana/image/win.png")'];
+	                                 state2.image = game.assets['@routes.Assets.at("getbanana/image/lose.png")'];
+	                                 } else if(game.score2 > game.score1) {
+	                                 state1.image = game.assets['@routes.Assets.at("getbanana/image/lose.png")'];
+	                                 state2.image = game.assets['@routes.Assets.at("getbanana/image/win.png")'];
+	                                 } else {
+	                                 state1.image = state2.image = game.assets['@routes.Assets.at("getbanana/image/lose.png")'];
+	                                 }
+	                                 }
+
+	                                 });
+
+	// ゲームシーン　実際のゲーム画面
+	var player1;
+	var GameScene = Class.create(Scene, {
+	                             initialize: function() {
+	                             Scene.call(this);
+	                                                          
+	                             // 時間
+	                             var time = 30;
+	                             this.time = time;
+	                             
+	                             
+	                             // ゲーム全体のバックグラウンド。楽なので一気に貼ってしまう。
+	                             background = new Sprite(640, 320);  // 320x320 サイズの Sprite オブジェクトを生成
+	                             background.x = background.y = 0;    // Sprite の左上の x, y 座標を指定
+	                             background.image = game.assets['@routes.Assets.at("getbanana/image/bg.png")'] // bg.png を指定
+	    
+	                             // プレイヤーの初期化
+	                             player1 = new Player(0);
+	                             player2 = new Player(321);                             
+	                             
+	                             // 初期時間を設定しておく
+	                             player1.timelabel_time.setScore(this.time);
+	                             player2.timelabel_time.setScore(this.time);
+	                             
+	                             // ==== アイテム使用 =========================
+	                             // プレイヤー1
+	                             this.addEventListener('upbuttondown', function() {
+	                                                   useItem(player1);
+	                                                   });
+	                             
+	                             // プレイヤー2
+	                             this.addEventListener("spacebuttondown", function() {
+	                                                   useItem(player2);
+	                                                   });
+	                             // ==========================================
+	    
+	                             // 毎フレームの処理。時間表示、フィーバー判定、ゲーム終了判定を行う
+	                             this.addEventListener('enterframe',function(){
+	                                                   if(this.age % game.fps == 0) {
+	                                                       var currTime = (this.time-this.age/game.fps);
+	                                                       console.log("Time: "+ currTime);
+	                                                       player1.timelabel_time.setScore(currTime);
+	                                                       player2.timelabel_time.setScore(currTime);
+	                                                   }
+	                                                   
+	                                                   // フィーバー判定
+	                                                   if(game.feverAt != -1 &&
+	                                                      (game.frame - game.feverAt) > game.fps * 3) {
+	                                                   game.fever_bonus = 1;
+	                                                   game.feverAt = -1;
+	                                                   }
+	                                                                                                      
+	                                                   if(this.age > game.fps * this.time){
+	                                                       console.log("GAME END");
+	                                                       game.score1 = player1.score;
+	                                                       game.score2 = player2.score;
+	                                                       game.popScene();
+	                                                       gameOverScene.setScore();
+	                                                       game.pushScene(gameOverScene);
+	                                                   }
+	                                                   });
+	                             
+	                             this.addChild(background);
+	                             this.addChild(player1.group);
+	                             this.addChild(player2.group);
+	                             
+	                             }
+	                             });
+
+	// 各プレイヤー情報
+	var Player = function(pos) {
+		
+		function moveLeft(){
+			
+		}
+		
+		function moveRight(){
+			
+		}
+		
+	    var player = this;
+	    var group = new Group();
+	    
+	    // 画面の初期位置 プレイヤー1は0, プレイヤー2は321(game.width/2+1)
+	    this.pos = pos;
+	    
+	    // 向き反転(ポーション)
+	    this.flippedAt = -1;
+	    
+	    // 遅さ判定(ブタ)
+	    this.slowAt = -1;
+	    
+	    // 所持アイテム配列
+	    this.items = new Array();
+	    
+	    // ここから、クマのキャラクターを表示する処理
+	    var bear = new Sprite(32, 32);
+	    bear.x = pos;
+	    bear.y = 240;
+	    bear.width = 32;
+	    bear.height = 32;
+	    bear.image = game.assets['@routes.Assets.at("getbanana/image/chara1.gif")'];
+	    if(pos == 0)
+	        bear.frame = 0;
+	    else bear.frame = 5;
+	    
+	    bear.oldX = bear.x; // 向き判定に使用
+	    
+	    this.speed = SPEED.NORMAL; // くまの速さ
+	    
+	    group.addChild(bear);
+	    
+	    var score = 0;
+	    
+	    if(pos == 0){ // プレイヤー1 //ここに通信
+	        bear.addEventListener(enchant.Event.ENTER_FRAME, function() {
+	                              this.oldX = this.x;
+	                              
+	                              // キー押下時処理
+	                              if(game.input.left) {
+	                              this.x -= player.speed;
+	                              if(this.scaleX > 0) this.scaleX *= -1;
+	                              }
+	                              if(game.input.right) {
+	                              this.x += player.speed;
+	                              if(this.scaleX < 0) this.scaleX *= -1;
+	                              }
+	                              
+	                              // 端処理
+	                              if(this.x < 0) this.x = 0;
+	                              if(this.x > game.width/2-this.width) this.x = game.width/2-this.width;
+	                              
+	                              
+	                              // アニメ処理
+	                              if(this.oldX == this.x) this.frame = 0;
+	                              else if(game.frame % 6 == 0) {
+	                              if(this.frame != 1) this.frame = 1;
+	                              else if(this.frame != 2) this.frame = 2;
+	                              }
+	                          });
+	    } else { // プレイヤー2
+	        bear.addEventListener(enchant.Event.ENTER_FRAME, function() {
+	                              
+	                              // キー押下時処理
+	                              if(game.input.a) {
+	                              this.x -= player.speed;
+	                              if(this.scaleX > 0) this.scaleX *= -1;
+	                              }
+	                              if(game.input.b) {
+	                              this.x += player.speed;
+	                              if(this.scaleX < 0) this.scaleX *= -1;
+	                              }
+	                              
+	                              // 端処理
+	                              if(this.x < pos) this.x = pos;
+	                              if(this.x > game.width-this.width) this.x = game.width-this.width;
+	                              
+	                              // アニメ処理
+	                              if(this.oldX == this.x) this.frame = 5;
+	                              else if(game.frame % 6 == 0) {
+	                              if(this.frame != 6) this.frame = 6;
+	                              else if(this.frame != 7) this.frame = 7;
+	                              }
+	                          });
+	    }
+	    
+	    // 毎フレーム処理　6フレーム毎アイテム落下、キー反転判定、速さ判定、スコア表示を行う
+	    group.addEventListener('enterframe',function(){
+	                           // アイテム落下
+	                           if(game.frame % 6 == 0){
+	                           dropItem1(player, pos);
+	                           }
+	                           
+	                           // キー反転の時の処理（ポーション）
+	                           if(player.flippedAt != -1 &&
+	                              (game.frame-player.flippedAt) > game.fps * 3) {
+	                           if(player.pos == 0) {
+	                               game.keybind(39, 'right');
+	                               game.keybind(37, 'left');
+	                           } else {
+	                               game.keybind('Z'.charCodeAt(0), 'a');
+	                               game.keybind('X'.charCodeAt(0), 'b');
+	                           }
+	                           player.flippedAt = -1;
+	                           }
+	                           
+	                           // 速さ判定(ブタ)
+	                           if(player.slowAt != -1 &&
+	                              (game.frame - player.slowAt) > game.fps * 3) {
+	                           player.speed = SPEED.NORMAL;
+	                           player.slowAt = -1;
+	                           }
+
+	                           // スコア表示
+	                           player.scorelabel_score.setScore(player.score);
+	                           });
+
+	    
+	    // スコアラベル設定
+	    scorelabel = new FontGroup("SCORE:");
+	    scorelabel.x = pos;
+	    scorelabel.y = scorelabel.height;
+	    group.addChild(scorelabel);
+	    
+	    this.scorelabel_score = new ScoreGroup(5);
+	    this.scorelabel_score.x = pos;
+	    this.scorelabel_score.y = this.scorelabel_score.height;
+	    group.addChild(this.scorelabel_score);
+	    
+	    // タイムラベル設定
+	    timelabel = new FontGroup("TIME :");
+	    timelabel.x = pos;
+	    group.addChild(timelabel);
+	    
+	    this.timelabel_time = new ScoreGroup(2);
+	    this.timelabel_time.x = pos;
+	    group.addChild(this.timelabel_time);
+	    
+	    // アイテムグループ
+	    this.item_group = new Group();
+	    group.addChild(this.item_group);
+	    
+	    this.bear = bear;
+	    this.group = group;
+	    this.score = score;
+	    
+	         }
+
+
+
+	var setTime = function(score) {
+	    scoreLabel_score = new ScoreLabel_Score(score);
+	    
+	};
+
+
+	// ======== 簡単表示用関数 ========
+	// 変動数値グループ
+	var ScoreGroup = Class.create(Group, {
+	initialize:
+	function(keta) {
+	    Group.call(this);
+	    this.height = 16;
+
+	    this.keta = keta-1;
+	    n = [];
+	    for(var i=this.keta; i>-1; i--) {
+	    n[i] = new Sprite(16, 16);
+	    n[i].x = n[i].width*(6+i);
+	    n[i].y = 0;
+	    n[i].image = game.assets['@routes.Assets.at("getbanana/image/font1.png")'];
+	    this.addChild(n[i]);
+	    }
+	    this.n = n;
+	},
+
+	setScore:
+	function(score) {
+	    for(var i=this.keta; i>-1; i--) {
+	    this.n[i].frame = 16 + score%10;
+	    score = score / 10;
+	    }
+	}
+	});
+
+
+	// 不変文字列グループ
+	var FontGroup = Class.create(Group, {
+	initialize:                             
+	function(string){
+	    Group.call(this);
+	    var str = string.split('');
+	    this.height = 16;
+	    this.width = 16*str.length;
+	    
+	    for(var i=0; i<str.length; i++) {
+	        var letter = new Sprite(16, 16);
+	        letter.x = letter.width*i;
+	        letter.y = 0;
+	        letter.image = game.assets['@routes.Assets.at("getbanana/image/font1.png")'];
+	        letter.frame = str[i].charCodeAt(0)-32;
+	        this.addChild(letter);
+	    }
+	                             }});
+
+	// アイテム画像と画像文字列作成
+	// HOW TO USE: new FontGroupWithSprites("%S...10 POINTS", frameID);
+	var FontGroupWithSprites = Class.create(Group, {
+	                                        initialize:
+	                                        function(string, posX, posY) {
+	                                        Group.call(this);
+	                                        
+	                                            if(arguments.length < 1) {console.log("ERROR!!"); return;}
+	                                            var string = arguments[0];
+	                                            var index_first = 0;
+	                                            var index_last = string.indexOf("%S");
+	                                            var arg_index = 1;
+	                                            var x_sum = 0;
+	                                        while(index_last  >= 0) {
+	                                                if(index_first != index_last) {
+	                                                    var fontgp = new FontGroup(string.substring(index_first, index_last));
+	                                                    x_sum += fontgp.width;
+	                                                    this.addChild(fontgp);
+	                                                }
+	                                        
+	                                        var sprite = new Icon0(arguments[arg_index], x_sum, 0, 1);
+	                                        x_sum += sprite.width;
+	                                        this.addChild(sprite);
+	                                        arg_index++;
+	                                        
+	                                        index_first = index_last + 2;
+	                                        string = string.substring(index_first, string.length);
+	                                        index_last = string.indexOf("%S");
+	                                        }
+	                                        if(index_first < string.length) {
+	                                        fontgp = new FontGroup(string);
+	                                        fontgp.x = x_sum;
+	                                        this.addChild(fontgp);
+	                                        }
+	                                        
+	                                        this.width = 16*x_sum;
+	                                        this.height = 16;
+	                                        }});
+	// バナナ等16x16アイコン用
+	var Icon0 = Class.create(Sprite, {
+	                         initialize:
+	                         function(frame, posX, posY, scale) {
+	                         enchant.Sprite.call(this, 16, 16);
+	                         
+	                         this.x = posX;
+	                         this.y = posY;
+	                         this.scale(scale, scale);
+	                         this.image = game.assets['@routes.Assets.at("getbanana/image/icon0.gif")'];
+	                         this.frame = frame;
+	                         }});
+
+	function playSound(soundname) {
+	    game.assets[soundname].clone().play();
+	};
+	// ================================
+
+	// ======== アイテム ===========
+
+	// 良いアイテム用
+	function dropItem1(player) {
+	    dropItem2(player, getDropItem());
+	};
+
+	// 悪いアイテム用
+	function dropItem2(player, item) {
+	    var item_sprite = new Icon0(item.frame, rand(304)+ player.pos, 0, 1);
+	    item_sprite.drop_speed = rand(5); // 落下速度 0-5
+	    
+	    item_sprite.addEventListener('enterframe', function(e) {
+	                                 if(this.intersect(player.bear)){       // bearとの当たり判定
+	                                 player.group.removeChild(this); // 画面から消去
+	                                 itemMethod(player, item);
+	                                 }else{
+	                                 this.y += this.drop_speed+1;                // y座標を増やす (落下)
+	                                 }
+	                                 });
+	    player.group.addChild(item_sprite);
+	};
+
+	// ランダムで落とす良いアイテムを選択
+	function getDropItem() {
+	    // どのアイテムがどの倍率で落ちるかはここで決める〜〜
+	    var item;
+	    var i = rand(100);
+	    if(i < 40) {
+	        item = DROP_ITEM.BANANA;
+	    } else if(i < 65) {
+	        item = DROP_ITEM.APPLE;
+	    } else if(i < 75) {
+	        item = DROP_ITEM.MELON;
+	    } else if(i < 80) {
+	        item = DROP_ITEM.JEWEL;
+	    } else if(i < 85) {
+	        item = DROP_ITEM.PORTION;
+	    } else if(i < 90) {
+	        item = DROP_ITEM.BOMB;
+	    } else if(i < 95){
+	        item = DROP_ITEM.PIG;
+	    } else {
+	        item = DROP_ITEM.STAR;
+	    }
+	    return item;
+	};
+
+	// アイテムリストに登録 現在は3つまで
+	function addItem(player, item) {
+	    if(player.items.length == HAVE_ITEM_MAX) return;
+	    player.items.push(item);
+	    
+	    var item_sprite = new Icon0(item.frame, player.pos + 200 + 32 * player.items.length, 10, 2);
+	    
+	    player.item_group.addChild(item_sprite);
+	};
+
+	// アイテムの効果
+	function itemMethod(player, item) {
+	    switch(item) {
+	        // 良い効果
+	        case DROP_ITEM.BANANA:
+	        case DROP_ITEM.APPLE:
+	        case DROP_ITEM.MELON:
+	        case DROP_ITEM.JEWEL: {
+	            if(isChrome) playSound('sound/se2.wav');
+	            player.score += item.score * game.fever_bonus;
+	            break;
+	        }
+	        case DROP_ITEM.PORTION:
+	        case DROP_ITEM.BOMB:
+	        case DROP_ITEM.PIG:
+	        case DROP_ITEM.STAR: {
+	            if(isChrome) playSound('sound/se6.wav');
+	            addItem(player, item);
+	            break;
+	        }
+	        // 悪い効果
+	        case DROP_ITEM.PORTION.BAD: {
+	            if(isChrome) playSound('sound/se3.wav');
+	            if(player == player1) {
+	                game.keybind(39, 'left');
+	                game.keybind(37, 'right');
+	                player1.flippedAt = game.frame;
+	            } else if(player == player2) {
+	                game.keybind('Z'.charCodeAt(0), 'b');
+	                game.keybind('X'.charCodeAt(0), 'a');
+	                player2.flippedAt = game.frame;
+	            } else {
+	                console.log("itemMethod: error");
+	            }
+	            break;
+	        }
+	        case DROP_ITEM.BOMB.BAD: {
+	            if(isChrome) playSound('sound/shot5.wav');
+	            player.score /= 2;
+	            break;
+	        }
+	        case DROP_ITEM.PIG.BAD: {
+	            if(isChrome) playSound('sound/se3.wav');
+	            player.speed = SPEED.SLOW;
+	            player.slowAt = game.frame;
+	            break;
+	        }
+	    }
+	};
+
+	// アイテムを使用する
+	// 今は上から順にしか使えない
+	function useItem(player) {
+	    var item = player.items.shift();
+	    if(item == null) return; // アイテムを持っていない時
+	    
+	    if(item == DROP_ITEM.STAR) {
+	        fever();
+	    } else  {
+	        if(player == player1)
+	            dropItem2(player2, item.BAD);
+	        else dropItem2(player1, item.BAD);
+	    }
+	    var oldGroup = player.item_group.childNodes;
+	    
+	    for(var i=1; i<oldGroup.length; i++) {
+	        oldGroup[i].x -= 32;
+	    }
+	    player.item_group.childNodes = oldGroup;
+	    player.item_group.removeChild(oldGroup[0]);
+	};
+
+	// フィーバータイム！　ポイントが2倍になる！！対象は両プレイヤー
+	function fever() {
+	    game.feverAt = game.frame;
+	    game.fever_bonus = 2;
+	    
+	    if(isChrome) playSound('sound/se7.wav');
+	    
+	    var fever_back1 = new Sprite(300, 300);
+	    fever_back1.x = (game.width/2-fever_back1.width)/2;
+	    fever_back1.y = (game.height-fever_back1.height)/2;
+	    fever_back1.image = game.assets['@routes.Assets.at("getbanana/image/fever3.png")'];
+	    fever_back1.tl.rotateBy(360, game.fps).rotateBy(360, game.fps).rotateBy(360, game.fps).and().fadeOut(game.fps);
+	    player1.group.insertBefore(fever_back1, player1.bear);
+	    
+	    var fever_back2 = new Sprite(300, 300);
+	    fever_back2.x = (game.width/2*3-fever_back2.width)/2;
+	    fever_back2.y = (game.height-fever_back2.height)/2;
+	    fever_back2.image = game.assets['@routes.Assets.at("getbanana/image/fever3.png")'];
+	    fever_back2.tl.rotateBy(360, game.fps).rotateBy(360, game.fps).rotateBy(360, game.fps).and().fadeOut(game.fps);
+	    player2.group.insertBefore(fever_back2, player2.bear);
+	};
+	// =========================== ここまでゲーム
+	
+	//ここからwebsocket
+	
     
+        $(function() {
+            
+			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+            var chatSocket = new WS("@routes.GameView.signal().webSocketURL()")
+            
+            var receiveEvent = function(event) {
+                var data = JSON.parse(event.data)
+                
+                if(data.error) {
+                    chatSocket.close()
+                    window.alert("websocket error");
+                    return
+                }
+                
+                if(data.status == "active"){ //ゲーム開始出来る状態になる
+                	current_game_status = game_status.active;
+                } else if(data.status == "enter"){ //ユーザが参加した。
+                	//TODO
+                } else if(data.status == "start"){　//ゲーム開始状態
+                	if(data.role == "left"){
+                		player1.moveLeft();
+                	} else if(data.role == "right"){
+                		player1.moveRight();
+                	}
+                } else if(data.status == "stop"){ //
+                	
+                }
+            }
+            
+            chatSocket.onmessage = receiveEvent
+            
+        });
+    </script>
+}
+
+@body(Some(roomname),head){
     <div class="page-header">
         <h1>View <small>room : @roomname</small></h1>
     </div>
@@ -11,75 +869,5 @@
             <strong>Oops!</strong> <span></span>
         </p>
     </div>
-    
-    <div id="onChat" class="row">
-        <div class="span10" id="main">
-            <div id="messages">
-            </div>
-            <textarea id="talk"></textarea>
-        </div>
-        <div class="span4">
-            <h2>Members</h2>
-            <ul id="members">
-            </ul>
-        </div>
-    </div>
-    
-    <script type="text/javascript" charset="utf-8">
-    
-        $(function() {
-            
-			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
-            var chatSocket = new WS("@routes.GameView.signal().webSocketURL()")
-            
-            var sendMessage = function() {
-                chatSocket.send(JSON.stringify(
-                    {text: $("#talk").val()}
-                ))
-                $("#talk").val('')
-            }
-            
-            var receiveEvent = function(event) {
-                var data = JSON.parse(event.data)
-                
-                // Handle errors
-                if(data.error) {
-                    chatSocket.close()
-                    $("#onError span").text(data.error)
-                    $("#onError").show()
-                    return
-                } else {
-                    $("#onChat").show()
-                }
-                
-                // Create the message element
-                var el = $('<div class="message"><span></span><p></p></div>')
-                $("span", el).text(data.user)
-                $("p", el).text(data.message)
-                $(el).addClass(data.kind)
-                if(data.user == '@roomname') $(el).addClass('me')
-                $('#messages').append(el)
-                
-                // Update the members list
-                $("#members").html('') 
-                $(data.members).each(function() {
-                    $("#members").append('<li>' + this + '</li>')
-                })
-            }
-            
-            var handleReturnKey = function(e) {
-                if(e.charCode == 13 || e.keyCode == 13) {
-                    e.preventDefault()
-                    sendMessage()
-                } 
-            }
-            
-            $("#talk").keypress(handleReturnKey)  
-            
-            chatSocket.onmessage = receiveEvent
-            
-        })
-    
-    </script>
-    
+    <div id="enchant-stage"></div>
 }

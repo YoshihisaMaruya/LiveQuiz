@@ -149,15 +149,7 @@ object GameController extends Controller {
    		case (Some(roomname),Some(team),Some(username),Some(role)) => {
    		  User.is({
    			  (rm, r, u, re) => {
-   			    GameRoomMonitor.forwardSignal(roomname.head, team.head, username.head, 
-   			    Json.toJson(Map(
-   			          "roomname" -> roomname.head,
-   			          "team" -> team.head,
-   			          "username" -> username.head,
-   			          "role" -> role.head
-   			         )
-   			       )
-   			    )
+   			    GameRoomMonitor.forwardSignal(roomname.head, team.head, username.head, role.head)
    			    Ok("Success")
    			  }
    		  }, {

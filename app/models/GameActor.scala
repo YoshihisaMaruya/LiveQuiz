@@ -78,8 +78,8 @@ object GameRoomMonitor {
         (a ? Creating).map {
           case Created(enumerator) =>
             val iteratee = Iteratee.foreach[JsValue] { event => ///コネクションが続いてるなら、信号を送信
-              println("iteratee")
-              a ! Signal(event)
+              println("connection lost")
+              a ! Kill
             }.mapDone { _ => ///ないならメッセージをログに
               println("room " + roomname + " closed")
             }
@@ -193,13 +193,13 @@ object GameRoomMonitor {
   }
   
   /**
-   * 後でリファクタリング
+   * 信号をフォワード
    */
-  def forwardSignal(roomname : String,team : String, username : String ,signal : JsValue) = {
+  def forwardSignal(roomname : String,team : String, username : String, role : String) = {
     this.get(roomname).map{ a =>
       Await.result(a ? IsExist(team,username), 1 seconds) match{
          case YesExist => {
-            a ! Signal(signal)
+            a ! Signal(team,username,role)
             true
          }
          case _ => false
@@ -215,9 +215,7 @@ class GameRoomActor(teams : Set [String], roles : Set[String]) extends Actor {
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
   
-  //(group,username) => role
-  var members : MMap[(String,String) , String]= MMap.empty
-  
+  var members : MMap[(String,String) , String]= MMap.empty   //(group,username) => role
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
   val vacants = teams.flatMap(g => Map(g -> {
@@ -225,61 +223,98 @@ class GameRoomActor(teams : Set [String], roles : Set[String]) extends Actor {
      roles.foreach(q.enqueue(_))
      q
    }
-   )).toMap //空き
+   )).toMap //空き行列を作成
   
   
-  def receive  = { //待機状態
+  def receive  = { //ルーム作成
     case Creating => {
       sender ! Created(enumerator)
-      become(active)
+      become(waiting)
     }
   }
 
-  def active : Receive = { //アクティブ
-    case Joininig(group,username) => { //ユーザが参加したい
-      println("@actor active user => " + members.mkString(","))
-      if (members.contains((group,username))) { //名前被り
-        println("@active =>  " + group + " : " +  username + " has already exsited")
+  def waiting : Receive = { //待機状態
+    case Joininig(team,username) => { //ユーザが参加したい
+      println("@actor wait joining : users => " + members.mkString(","))
+      if (members.contains((team,username))) { //名前被り
+        println("@active =>  " + team + " : " +  username + " has already exsited")
         sender ! CannotJoined
       } else { 
-        vacants.get(group).map{ rs => 
-          if(rs.isEmpty){
-            println("@active =>  " + group + " : " +  username + " さんは役割なし")
+        vacants.get(team).map{ rs => 
+          if(rs.isEmpty){ //役割が存在しない
+            println("@active =>  " + team + " : " +  username + " さんは役割なし")
             sender ! CannotJoined
           } else{
             val r = rs.dequeue //役割
-        	members += ( ((group,username),r)  )
+        	members += ( ((team,username),r)  )
+        	channel.push(Json.toJson(Map( //参加した事を伝える
+        			   "status" -> "enter",
+        			   "username" -> username,
+        			   "team" -> team,
+        			   "role" -> r
+        	   ))) 
+        	if(members.size == (teams.size * roles.size)) //メンバーが揃った
+        	{
+        	   println("become active")
+        	   channel.push(Json.toJson(Map("status" -> "active"))) //ゲームの状態をactiveに
+        	   become(starting)
+        	}
         	sender ! Joined(r)
           }
-        }.getOrElse{ //空きなし
+        }.getOrElse{ //グープが存在しない
           sender ! CannotJoined
         }
       }
     }
-    
-    case Leaving(group,username,role) => { //退出したい
-      vacants.get(group).map{ rs => 
+    //共通メッセージ
+    case Leaving(group,username,role) => leave(group, username, role)
+    case IsExist(group,username) => isExist(group, username)
+  }
+  
+  def starting : Receive = { //スタート状態
+    case Joininig(group,username) => { //ユーザが参加したい
+      sender ! CannotJoined //スタート状態なので駄目
+    }
+    case Signal(team : String, username : String, role : String) => { //コントローラーからのシグナル
+      println("signal")
+      channel.push(Json.toJson(Map(
+          "status" -> "start",
+          "username" -> username,
+          "team" -> team,
+          "role" -> role
+       ))) 
+    }
+     //共通メッセージ
+    case Leaving(group,username,role) => {
+      leave(group, username, role)
+      become(waiting) //wait状態になる
+    }
+    case IsExist(group,username) => isExist(group, username)
+  }
+  
+  /**
+   * 存在確認
+   */
+  def isExist(group : String, username : String) = {
+    if (members.contains((group,username))) { //存在してる
+        sender ! YesExist
+        true
+      } else {
+        sender ! NoExist
+        false
+      }
+  }
+  
+  /**
+   * 退出
+   */
+  def leave(group : String,username : String, role : String) = {
+    vacants.get(group).map{ rs => 
         	rs.enqueue(role)
             members -= ((group,username))
         }
       sender ! Leaved
-    }
-    case IsExist(group,username) => {
-      if (members.contains((group,username))) { //存在してる
-        sender ! YesExist
-      } else {
-        sender ! NoExist
-      }
-    }
-    case Signal(msg) => { //コントローラーからのシグナル
-      println(" @actor forward signal => " + msg)
-      channel.push(msg) //そのままフォワード
-    }
-  }
-
-  def notifyAll(kind : String, user : String, text : String) {
-    //channel.push(msg)
-  }
+ }
 }
 
 /**
@@ -304,4 +339,4 @@ case object YesExist
 case object NoExist
 
 //コントローラーからのシグナル
-case class Signal(msg : JsValue)
+case class Signal(team : String, username : String, role : String)
