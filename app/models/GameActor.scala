@@ -78,6 +78,7 @@ object GameRoomMonitor {
         (a ? Creating).map {
           case Created(enumerator) =>
             val iteratee = Iteratee.foreach[JsValue] { event => ///コネクションが続いてるなら、信号を送信
+              println("iteratee")
               a ! Signal(event)
             }.mapDone { _ => ///ないならメッセージをログに
               println("room " + roomname + " closed")
@@ -180,12 +181,27 @@ object GameRoomMonitor {
   }
   
   /**
-   * 
+   * actorにユーザが存在しているか否か
    */
   def isExistUser(roomname : String,team : String, username : String) = {
     this.get(roomname).map{ a =>
       Await.result(a ? IsExist(team,username), 1 seconds) match{
          case YesExist => true
+         case _ => false
+       }
+    }.getOrElse(false)
+  }
+  
+  /**
+   * 後でリファクタリング
+   */
+  def forwardSignal(roomname : String,team : String, username : String ,signal : JsValue) = {
+    this.get(roomname).map{ a =>
+      Await.result(a ? IsExist(team,username), 1 seconds) match{
+         case YesExist => {
+            a ! Signal(signal)
+            true
+         }
          case _ => false
        }
     }.getOrElse(false)
@@ -256,6 +272,7 @@ class GameRoomActor(teams : Set [String], roles : Set[String]) extends Actor {
       }
     }
     case Signal(msg) => { //コントローラーからのシグナル
+      println(" @actor forward signal => " + msg)
       channel.push(msg) //そのままフォワード
     }
   }

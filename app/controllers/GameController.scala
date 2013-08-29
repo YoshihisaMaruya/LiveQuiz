@@ -10,6 +10,7 @@ import scala.concurrent.duration._
 import play.api.data.Form
 import play.api.data.Forms._
 import play.mvc.Results.Todo
+import views.html.defaultpages.badRequest
 
 
 /**
@@ -142,18 +143,32 @@ object GameController extends Controller {
     Ok(Routes.javascriptRouter("jsRoutes")(routes.javascript.GameController.ajax)).as("text/javascript")
   }
 
-  def ajax(pushed : Option[String]) = Action { implicit request =>
-    def pushed_bind(key : String) = {
-      key match {
-      	case _ => None
-      }
+  def ajax() = Action { implicit request =>
+    request.body.asFormUrlEncoded.map{ b =>
+   	(b.get("roomname"),b.get("team"),b.get("username"),b.get("role")) match { //キャッシュから取得出来るけど、とりあえず
+   		case (Some(roomname),Some(team),Some(username),Some(role)) => {
+   		  User.is({
+   			  (rm, r, u, re) => {
+   			    GameRoomMonitor.forwardSignal(roomname.head, team.head, username.head, 
+   			    Json.toJson(Map(
+   			          "roomname" -> roomname.head,
+   			          "team" -> team.head,
+   			          "username" -> username.head,
+   			          "role" -> role.head
+   			         )
+   			       )
+   			    )
+   			    Ok("Success")
+   			  }
+   		  }, {
+   			  BadRequest("aa")
+   		  })
+   		}
+   		case (_,_,_,_) => BadRequest("aa")
+     }
+    }.getOrElse{
+      BadRequest("aa")
     }
-    val user_values = User.values
-    val key = pushed.map(p => pushed_bind(p)).getOrElse(None)
-    
-   
-    
-   	Ok("Success")
   }
   
   def signal = Action { implicit request =>

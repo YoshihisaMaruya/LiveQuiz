@@ -29,14 +29,21 @@
     var team = "@team";
     var username = "@username";
     var role = "@role";
+    var d = {
+    		roomname : "@roomname",
+    	    team : "@team",
+    	    username : "@username",
+    	    role : "@role"
+    };
 
 	$('#up').click(function(e) {
 	    $.ajax({
-	        type : 'GET',
+	        type : 'post',
 	        url : '@routes.GameController.ajax()',
-	        data : {
-	            pushed : "up"
-	        },
+	        data : d,
+	        cache : false,
+	        dataType : 'json',
+	        scriptCharset: 'utf-8',
 	        success : function(data) {
 	            
 	        }
@@ -46,11 +53,11 @@
 	
 	$('#left').click(function(e) {
 	    $.ajax({
-	        type : 'GET',
+	        type : 'POST',
 	        url : '@routes.GameController.ajax()',
-	        data : {
-	        	pushed : "left"
-	        },
+	        data : d,
+	        dataType : 'json',
+	        scriptCharset: 'utf-8',
 	        success : function(data) {
 	            
 	        }
@@ -60,11 +67,11 @@
 	
 	$('#right').click(function(e) {
 	    $.ajax({
-	        type : 'GET',
+	        type : 'POST',
 	        url : '@routes.GameController.ajax()',
-	        data : {
-	        	pushed : "right"
-	        },
+	        data : d,
+	        dataType : 'json',
+	        scriptCharset: 'utf-8',
 	        success : function(data) {
 	            
 	        }
@@ -74,11 +81,11 @@
 	
 	$('#down').click(function(e) {
 	    $.ajax({
-	        type : 'GET',
+	        type : 'POST',
 	        url : '@routes.GameController.ajax()',
-	        data : {
-	        	pushed : "down"
-	        },
+	        data : d,
+	        dataType : 'json',
+	        scriptCharset: 'utf-8',
 	        success : function(data) {
 	            
 	        }

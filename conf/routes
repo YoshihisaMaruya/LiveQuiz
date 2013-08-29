@@ -25,7 +25,7 @@ POST   /controller/dologin    controllers.GameController.dologin
 GET    /controller/dologout   controllers.GameController.dologout
 
 ##ajax
-GET	   /controller/ajax		  controllers.GameController.ajax(pushed: Option[String] ?= None)
+POST	   /controller/ajax		  controllers.GameController.ajax()
 GET	   /controller/javascriptRoutes    controllers.GameController.javascriptRoutes
 
 ##websocket
