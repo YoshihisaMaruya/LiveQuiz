@@ -57,7 +57,7 @@ object GameRoomMonitor {
       None
     } else { //いないなら
       try {
-        val actor = Akka.system.actorOf(Props(new GameRoomActor(teems,roles)), roomname) ///アクターを作成
+        val actor = Akka.system.actorOf(Props(new GameRoomActor(roomname,teems,roles)), roomname) ///アクターを作成
         rooms += (roomname -> actor.path.toString) ///pathを追加
         println("@ create actor : " + actor.path + ", executed actors " + rooms)
         Some(actor)
@@ -78,10 +78,11 @@ object GameRoomMonitor {
         (a ? Creating).map {
           case Created(enumerator) =>
             val iteratee = Iteratee.foreach[JsValue] { event => ///コネクションが続いてるなら、信号を送信
-              println("connection lost")
-              a ! Kill
+             
             }.mapDone { _ => ///ないならメッセージをログに
               println("room " + roomname + " closed")
+               delete(roomname)
+               a ! Kill
             }
             (iteratee, enumerator)
         }
@@ -211,7 +212,7 @@ object GameRoomMonitor {
 /**
  * gameroomアクター
  */
-class GameRoomActor(teams : Set [String], roles : Set[String]) extends Actor {
+class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[String]) extends Actor {
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
   
