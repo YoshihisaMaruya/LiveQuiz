@@ -328,7 +328,7 @@
 	                                 });
 
 	// ゲームシーン　実際のゲーム画面
-	var player1;
+	var player1, player2;
 	var GameScene = Class.create(Scene, {
 	                             initialize: function() {
 	                             Scene.call(this);
@@ -399,12 +399,14 @@
 	// 各プレイヤー情報
 	var Player = function(pos) {
 		
-		function moveLeft(){
-			
+		var left_iputed = false;
+		this.moveLeft = function(){
+			left_iputed = true;
 		}
 		
-		function moveRight(){
-			
+		var right_inputed = false;
+		this.moveRight = function(){
+			right_inputed = true;
 		}
 		
 	    var player = this;
@@ -441,7 +443,7 @@
 	    
 	    var score = 0;
 	    
-	    if(pos == 0){ // プレイヤー1 //ここに通信
+	    if(pos == 0){ // プレイヤー1
 	        bear.addEventListener(enchant.Event.ENTER_FRAME, function() {
 	                              this.oldX = this.x;
 	                              
@@ -454,6 +456,19 @@
 	                              this.x += player.speed;
 	                              if(this.scaleX < 0) this.scaleX *= -1;
 	                              }
+	                              
+	                              //add
+	                              if(left_iputed) {
+	                              this.x -= player.speed;
+	                              if(this.scaleX > 0) this.scaleX *= -1;
+	                              left_iputed = false;
+	                              }
+	                              if(right_inputed) {
+	                              this.x += player.speed;
+	                              if(this.scaleX < 0) this.scaleX *= -1;
+	                              right_inputed = false;
+	                              }
+	                              
 	                              
 	                              // 端処理
 	                              if(this.x < 0) this.x = 0;
@@ -480,6 +495,17 @@
 	                              if(this.scaleX < 0) this.scaleX *= -1;
 	                              }
 	                              
+	                              if(left_iputed) {
+		                              this.x -= player.speed;
+		                              if(this.scaleX > 0) this.scaleX *= -1;
+		                              left_iputed = false;
+		                          }
+		                          if(right_inputed) {
+		                              this.x += player.speed;
+		                              if(this.scaleX < 0) this.scaleX *= -1;
+		                              right_inputed = false;
+		                          }
+	                                                      
 	                              // 端処理
 	                              if(this.x < pos) this.x = pos;
 	                              if(this.x > game.width-this.width) this.x = game.width-this.width;
@@ -826,16 +852,16 @@
     
         $(function() {
             
-			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
-            var chatSocket = new WS("@routes.GameView.signal().webSocketURL()")
+			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket;
+            var chatSocket = new WS("@routes.GameView.signal().webSocketURL()");
             
             var receiveEvent = function(event) {
-                var data = JSON.parse(event.data)
+                var data = JSON.parse(event.data);
                 
                 if(data.error) {
-                    chatSocket.close()
+                    chatSocket.close();
                     window.alert("websocket error");
-                    return
+                    return;
                 }
                 
                 if(data.status == "active"){ //ゲーム開始出来る状態になる
@@ -843,12 +869,16 @@
                 } else if(data.status == "enter"){ //ユーザが参加した。
                 	//TODO
                 } else if(data.status == "start"){　//ゲーム開始状態
-                	if(data.role == "left"){
+                	if((data.team == "1") && (data.role == "left")){
                 		player1.moveLeft();
-                	} else if(data.role == "right"){
+                	} else if((data.team == "1") && (data.role == "right")){
                 		player1.moveRight();
-                	}
-                } else if(data.status == "stop"){ //
+                	} else if((data.team == "2") && (data.role == "left")){
+                		player2.moveLeft();
+                	}  else if((data.team == "2") && (data.role == "right")){
+                		player2.moveRight();
+                	} 
+                } else if(data.status == "stop"){ // TODO
                 	
                 }
             }
