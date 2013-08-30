@@ -217,9 +217,13 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
   
+  println("@actor : " + roomname + " open")
   var members : MMap[(String,String) , String]= MMap.empty   //(group,username) => role
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
+  override def postStop() {
+	  println("@actor : " + roomname + " close")
+ } 
   val vacants = teams.flatMap(g => Map(g -> {
      var q : MQueue[String]= MQueue.empty
      roles.foreach(q.enqueue(_))
