@@ -42,7 +42,8 @@ object Robot {
 
 object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
-  implicit val timeout = Timeout(10 second)
+  implicit val timeout = Timeout(100 second)
+  val future_timeout = 100 second
 
   private val rooms : MMap[String, String] = MMap.empty //(name => path) actor pathを保持する為に必要
 
@@ -157,7 +158,7 @@ object GameRoomMonitor {
    */
   def join(roomname : String,team : String, username : String) : Option[String]= {
     this.get(roomname).map{ a =>
-       Await.result(a ? Joininig(team,username),10 seconds) match{
+       Await.result(a ? Joininig(team,username),future_timeout) match{
          case Joined(role) => {
            Some(role)
          }
@@ -174,7 +175,7 @@ object GameRoomMonitor {
    */
   def leave(roomname : String,team : String, username : String, role : String) = {
      this.get(roomname).map{ a =>
-       Await.result(a ? Leaving(team,username,role), 10 seconds) match{
+       Await.result(a ? Leaving(team,username,role), future_timeout) match{
          case Leaved => Some
          case _ => None
        }
@@ -186,7 +187,7 @@ object GameRoomMonitor {
    */
   def isExistUser(roomname : String,team : String, username : String) = {
     this.get(roomname).map{ a =>
-      Await.result(a ? IsExist(team,username), 10 seconds) match{
+      Await.result(a ? IsExist(team,username), future_timeout) match{
          case YesExist => true
          case _ => false
        }
@@ -198,7 +199,7 @@ object GameRoomMonitor {
    */
   def forwardSignal(roomname : String,team : String, username : String, role : String) = {
     this.get(roomname).map{ a =>
-      Await.result(a ? IsExist(team,username), 10 seconds) match{
+      Await.result(a ? IsExist(team,username), future_timeout) match{
          case YesExist => {
             a ! Signal(team,username,role)
             true
