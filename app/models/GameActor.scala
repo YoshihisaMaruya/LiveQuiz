@@ -217,7 +217,6 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
   
-  println("@actor : " + roomname + " open")
   var members : MMap[(String,String) , String]= MMap.empty   //(group,username) => role
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
@@ -234,6 +233,7 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   
   def receive  = { //ルーム作成
     case Creating => {
+      println("@actor : " + roomname + " open," + " path is "+ self.path)
       sender ! Created(enumerator)
       become(waiting)
     }
