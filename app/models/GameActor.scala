@@ -16,29 +16,31 @@ import scala.collection.mutable.LinkedList
 import scala.concurrent.Await
 
 
-/*
-object Robot {
+/**
+ * *
+ * these are actor's message
+ */
+//ルーム作成
+case class Creating(roomname : String)
+case class Created(enumerator : Enumerator[JsValue])
 
-  def apply(chatRoom : ActorRef) {
-    // Create an Iteratee that logs all messages to the console.
-    val loggerIteratee = Iteratee.foreach[JsValue](event => Logger("robot").info(event.toString))
+//ユーザ参加
+case class Joininig(team : String, username : String)
+case class Joined(role : String)
+case object CannotJoined
 
-    implicit val timeout = Timeout(1 second)
-    // Make the robot join the room
-    chatRoom ? (Join("Robot")) map {
-      case Connected(robotChannel) =>
-        // Apply this Enumerator on the logger.
-        robotChannel |>> loggerIteratee
-    }
+//ユーザ退出
+case class Leaving(team : String, username : String, role : String)
+case object Leaved
 
-    // Make the robot talk every 30 seconds
-    Akka.system.scheduler.schedule(
-      30 seconds,
-      30 seconds,
-      chatRoom,
-      Talk("Robot", "I'm still alive"))
-  }
-}*/
+case class IsExist(team : String, username : String)
+case object YesExist
+case object NoExist
+
+//コントローラーからのシグナル
+case class Signal(team : String, username : String, role : String)
+
+
 
 object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
@@ -217,6 +219,7 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
   
+
   var members : MMap[(String,String) , String]= MMap.empty   //(group,username) => role
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
@@ -233,7 +236,7 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   
   def receive  = { //ルーム作成
     case Creating => {
-      println("@actor : " + roomname + " open," + " path is "+ self.path)
+      println("@actor : " + roomname + " open")
       sender ! Created(enumerator)
       become(waiting)
     }
@@ -322,27 +325,3 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
       sender ! Leaved
  }
 }
-
-/**
- * *
- * these are actor's message
- */
-//ルーム作成
-case class Creating(roomname : String)
-case class Created(enumerator : Enumerator[JsValue])
-
-//ユーザ参加
-case class Joininig(team : String, username : String)
-case class Joined(role : String)
-case object CannotJoined
-
-//ユーザ退出
-case class Leaving(team : String, username : String, role : String)
-case object Leaved
-
-case class IsExist(team : String, username : String)
-case object YesExist
-case object NoExist
-
-//コントローラーからのシグナル
-case class Signal(team : String, username : String, role : String)
