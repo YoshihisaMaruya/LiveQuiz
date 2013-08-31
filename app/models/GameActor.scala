@@ -15,13 +15,11 @@ import scala.concurrent.Future
 import scala.collection.mutable.LinkedList
 import scala.concurrent.Await
 
-
 /**
- * *
  * these are actor's message
  */
 //ルーム作成
-case class Creating(roomname : String)
+case object Creating
 case class Created(enumerator : Enumerator[JsValue])
 
 //ユーザ参加
@@ -39,8 +37,6 @@ case object NoExist
 
 //コントローラーからのシグナル
 case class Signal(team : String, username : String, role : String)
-
-
 
 object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
@@ -65,7 +61,7 @@ object GameRoomMonitor {
         println("@ create actor : " + actor.path + ", executed actors " + rooms)
         Some(actor)
       } catch { ///exeptionのとき
-        case e => {
+         case e : Throwable => {
           e.printStackTrace
           None
         }
@@ -113,7 +109,7 @@ object GameRoomMonitor {
         Akka.system.actorFor(a) //ちゃんとactor取れるか
         true
       } catch {
-        case e => {
+        case e : Throwable => {
           rooms.remove(roomname)
           e.printStackTrace
           false
@@ -132,7 +128,7 @@ object GameRoomMonitor {
       try {
         Some(Akka.system.actorFor(a))
       } catch {
-        case e => {
+        case e : Throwable => {
           rooms.remove(roomname)
           e.printStackTrace
           None
@@ -218,13 +214,12 @@ object GameRoomMonitor {
 class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[String]) extends Actor {
   import context._
   import scala.collection.mutable.{ Queue => MQueue , Map => MMap}
-  
-
+ 
   var members : MMap[(String,String) , String]= MMap.empty   //(group,username) => role
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
   override def postStop() {
-	  println("@actor : " + roomname + " close")
+	  println("@actor : killed " + self.path)
  } 
   val vacants = teams.flatMap(g => Map(g -> {
      var q : MQueue[String]= MQueue.empty
@@ -236,9 +231,12 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
   
   def receive  = { //ルーム作成
     case Creating => {
-      println("@actor : " + roomname + " open")
+      println("@actor_receive : " + roomname)
       sender ! Created(enumerator)
       become(waiting)
+    }
+    case s => {
+      println("@actor_receive illegal message : " + s)
     }
   }
 
@@ -278,6 +276,9 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
     //共通メッセージ
     case Leaving(group,username,role) => leave(group, username, role)
     case IsExist(group,username) => isExist(group, username)
+    case s => {
+      println("@actor_waiting illegal message : " + s)
+    }
   }
   
   def starting : Receive = { //スタート状態
@@ -299,6 +300,9 @@ class GameRoomActor(val roomname : String, teams : Set [String], roles : Set[Str
       become(waiting) //wait状態になる
     }
     case IsExist(group,username) => isExist(group, username)
+    case s => {
+      println("@actor_starting illegal message : " + s)
+    }
   }
   
   /**
