@@ -40,7 +40,7 @@ case class Signal(team : String, username : String, role : String)
 
 object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
-  implicit val timeout = Timeout(100 second)
+  implicit val timeout = Timeout(10 second)
   val future_timeout = 100 second
 
   private val rooms : MMap[String, String] = MMap.empty //(name => path) actor pathを保持する為に必要
