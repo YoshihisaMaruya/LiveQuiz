@@ -48,8 +48,8 @@
 	        // Chromeなら曲を読み込む
 	        console.log("This browser is Chrome.");
 	        game.preload([
-	                  'sound/TWEEPOP_777.wav', 'sound/se2.wav', 'sound/se3.wav',
-	                  'sound/se6.wav', 'sound/se7.wav', 'sound/shot5.wav', 'sound/signal.wav'] );
+	                  '@routes.Assets.at("getbanana/sound/TWEEPOP_777.wav")', '@routes.Assets.at("getbanana/sound/se2.wav")', '@routes.Assets.at("getbanana/sound/se3.wav")',
+	                  '@routes.Assets.at("getbanana/sound/se6.wav")', '@routes.Assets.at("getbanana/sound/se7.wav")', '@routes.Assets.at("getbanana/sound/shot5.wav")', '@routes.Assets.at("getbanana/sound/signal.wav")'] );
 	    }
 	    //プリロードする画像を相対パスで指定
 	    
@@ -68,7 +68,7 @@
 	        game.keybind('S'.charCodeAt(0), "space");
 	        
 	        if(isChrome) {
-	            var bgm = game.assets['sound/TWEEPOP_777.wav'];
+	            var bgm = game.assets['@routes.Assets.at("getbanana/sound/TWEEPOP_777.wav")'];
 	            bgm.play();
 	            bgm.volume = 0.5;
 	            bgm._element.loop = true;
@@ -76,7 +76,7 @@
 	            game.keybind('Q'.charCodeAt(0), 'bgmstop');
 	            
 	            this.addEventListener('bgmstopbuttondown', function() {
-	                                  var bgm = game.assets['sound/TWEEPOP_777.wav'];
+	                                  var bgm = game.assets['@routes.Assets.at("getbanana/sound/TWEEPOP_777.wav")'];
 	                                  if(bgm._element.paused == true)
 	                                    bgm.play();
 	                                  else bgm.stop();
@@ -203,9 +203,9 @@
 	                            0: function() {
 	                            if(isChrome) {
 	                            for(var i=0; i<20; i++) { // 緩やかに音量を下げる
-	                                game.assets['sound/TWEEPOP_777.wav'].volume -= 0.01;
+	                                game.assets['@routes.Assets.at("getbanana/sound/TWEEPOP_777.wav")'].volume -= 0.01;
 	                            }
-	                            var sound = game.assets['sound/signal.wav'];
+	                            var sound = game.assets['@routes.Assets.at("getbanana/sound/signal.wav")'];
 	                            sound.play();
 	                            
 	                            }
@@ -232,7 +232,7 @@
 	                                //アニメが終わり次第ゲーム画面に推移
 	                            if(isChrome) {
 	                                for(var i=0; i<20; i++) { // 緩やかに音量を下げる
-	                                    game.assets['sound/TWEEPOP_777.wav'].volume += 0.01;
+	                                    game.assets['@routes.Assets.at("getbanana/sound/TWEEPOP_777.wav")'].volume += 0.01;
 	                                }
 	                            }
 	                            }
@@ -522,7 +522,7 @@
 	    // 毎フレーム処理　6フレーム毎アイテム落下、キー反転判定、速さ判定、スコア表示を行う
 	    group.addEventListener('enterframe',function(){
 	                           // アイテム落下
-	                           if(game.frame % 6 == 0){
+	                           if(game.frame % 30 == 0){
 	                           dropItem1(player, pos);
 	                           }
 	                           
@@ -760,7 +760,7 @@
 	        case DROP_ITEM.APPLE:
 	        case DROP_ITEM.MELON:
 	        case DROP_ITEM.JEWEL: {
-	            if(isChrome) playSound('sound/se2.wav');
+	            if(isChrome) playSound('@routes.Assets.at("getbanana/sound/se2.wav")');
 	            player.score += item.score * game.fever_bonus;
 	            break;
 	        }
@@ -768,13 +768,13 @@
 	        case DROP_ITEM.BOMB:
 	        case DROP_ITEM.PIG:
 	        case DROP_ITEM.STAR: {
-	            if(isChrome) playSound('sound/se6.wav');
+	            if(isChrome) playSound('@routes.Assets.at("getbanana/sound/se6.wav")');
 	            addItem(player, item);
 	            break;
 	        }
 	        // 悪い効果
 	        case DROP_ITEM.PORTION.BAD: {
-	            if(isChrome) playSound('sound/se3.wav');
+	            if(isChrome) playSound('@routes.Assets.at("getbanana/sound/se3.wav")');
 	            if(player == player1) {
 	                game.keybind(39, 'left');
 	                game.keybind(37, 'right');
@@ -789,12 +789,12 @@
 	            break;
 	        }
 	        case DROP_ITEM.BOMB.BAD: {
-	            if(isChrome) playSound('sound/shot5.wav');
+	            if(isChrome) playSound('@routes.Assets.at("getbanana/sound/shot5.wav")');
 	            player.score /= 2;
 	            break;
 	        }
 	        case DROP_ITEM.PIG.BAD: {
-	            if(isChrome) playSound('sound/se3.wav');
+	            if(isChrome) playSound('@routes.Assets.at("getbanana/sound/se3.wav")');
 	            player.speed = SPEED.SLOW;
 	            player.slowAt = game.frame;
 	            break;
@@ -829,7 +829,7 @@
 	    game.feverAt = game.frame;
 	    game.fever_bonus = 2;
 	    
-	    if(isChrome) playSound('sound/se7.wav');
+	    if(isChrome) playSound('@routes.Assets.at("getbanana/sound/se7.wav")');
 	    
 	    var fever_back1 = new Sprite(300, 300);
 	    fever_back1.x = (game.width/2-fever_back1.width)/2;
@@ -899,5 +899,5 @@
             <strong>Oops!</strong> <span></span>
         </p>
     </div>
-    <div id="enchant-stage"></div>
+    <div id="enchant-stage" style="width:1300px;height:1300px;"></div>
 }
