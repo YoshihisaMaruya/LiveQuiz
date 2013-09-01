@@ -1,0 +1,72 @@
+@media screen and (device-aspect-ratio:2/3) and (orientation: landscape)  {
+		body {
+	  		height:268px;
+	  		padding:0;
+	   		background-color:black;
+	   		/*margin:0,auto;*/
+	  	}
+	  	#container {
+	   		padding:0;
+	   		margin:0px;
+	   		bottom:0;
+	   	}
+	   #direction_button{
+	  		float:left;
+			width:40%;
+			margin: auto 0;
+	  	}
+	  	#item_button{
+			float:right;
+			width:40%;
+	  	}
+	  	#db{
+	  		margin:0 auto;	
+	  	}
+	  	#ib{
+	  		margin:0 auto;
+	  	}
+	  	.clear{
+	  		clear:both;
+	  	}
+	  	img { 
+	  		max-width: 100%;
+	  		margin:0 auto;
+	  	}
+	}
+	/* iPhone 4/4S Portrait */
+	@media screen and (device-aspect-ratio:2/3)  and (orientation: portrait) {
+		body {
+			margin:0;
+	  		padding:0;
+	   		background-color:red;
+	   		/*margin:0,auto;*/
+	  	}
+	  	#container {
+	   		padding:0;
+	   		margin:0;
+	   }
+	   #direction_button{
+	   		position:fixed;
+			top:0;
+	  	}
+	  	#item_button{
+	  		position:fixed;
+			bottom:0;
+
+	  	}
+	  	#db{
+	  		position:fixed;
+	  		margin:0;	
+	  		padding:0;
+	  	}
+	  	#ib{
+	  		margin:0;
+	  	}
+	  	.clear{
+	  		clear:both;
+	  	}
+	  	img { 
+	  		max-width: 100%;
+	  		}	  	
+	  }
+	}
