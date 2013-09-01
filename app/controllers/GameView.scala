@@ -35,7 +35,7 @@ object GameView extends Controller {
     def is(implicit request : Request[AnyContent]): Boolean = {
       request.cookies.get(ROOMNAME).map { r => {
           if(GameRoomMonitor.isExsistRoom(r.value)){
-        	  println("@view connect : roomname => " + r.value)
+        	  println("@view is : roomname => " + r.value)
         	  true
           } else{
              false

@@ -1,100 +1,78 @@
 @(roomname: String,team : String, username : String, role : String)(implicit request: RequestHeader)
 
-@body(Some(roomname)) {
-	
-    <div class="page-header">
-        <h1>Controller <small>room : @roomname, user : @username, team : @team</small></h1>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<title>controller-direction</title>
+		<meta name="description" content="" />
+		<meta name="author" content="DCL-tongkang" />
+		<meta
+		content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'
+		name='viewport' />
+		<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/controller.css")">
+		<meta name='apple-mobile-web-app-capable' content='yes' />
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				var roomname = "@roomname";
+				var team = "@team";
+				var username = "@username";
+				var role = "@role";
+				var d = {
+					roomname : "@roomname",
+					team : "@team",
+					username : "@username",
+					role : "@role"
+				};
 
-    <div class = "controller">
-    	<ul>
-    	<li><button id="up" name="up"><img src="@routes.Assets.at("images/controller/up.png")"></button></li>
-    	<li>
-    	<button id="left" name="left"><img src="@routes.Assets.at("images/controller/left.png")" id="left"></button>
-    	<button id="right" name="right"><img src="@routes.Assets.at("images/controller/right.png")" id="right"></button>
-    	</li>
-    	<li><button id="down" name="down"><img src="@routes.Assets.at("images/controller/down.png")" id="down"></button></li>
-    	</ul>
-    </div>
-    <div id="onError" class="alert-message error">
-        <p>
-            <strong>Oops!</strong> <span></span>
-        </p>
-    </div>
-    
-    
-    <script type="text/javascript" charset="utf-8">
-    
-    var roomname = "@roomname";
-    var team = "@team";
-    var username = "@username";
-    var role = "@role";
-    var d = {
-    		roomname : "@roomname",
-    	    team : "@team",
-    	    username : "@username",
-    	    role : "@role"
-    };
+				$("#db").click(function() {
+					$.ajax({
+				        type : 'post',
+				        url : '@routes.GameController.ajax()',
+				        data : d,
+				        cache : false,
+				        dataType : 'json',
+				        scriptCharset: 'utf-8',
+				        success : function(data) {
 
-	$('#up').click(function(e) {
-	    $.ajax({
-	        type : 'post',
-	        url : '@routes.GameController.ajax()',
-	        data : d,
-	        cache : false,
-	        dataType : 'json',
-	        scriptCharset: 'utf-8',
-	        success : function(data) {
-	            
-	        }
-	    });
-	    return false;
-	});
-	
-	$('#left').click(function(e) {
-	    $.ajax({
-	        type : 'POST',
-	        url : '@routes.GameController.ajax()',
-	        data : d,
-	        dataType : 'json',
-	        scriptCharset: 'utf-8',
-	        success : function(data) {
-	            
-	        }
-	    });
-	    return false;
-	});
-	
-	$('#right').click(function(e) {
-	    $.ajax({
-	        type : 'POST',
-	        url : '@routes.GameController.ajax()',
-	        data : d,
-	        dataType : 'json',
-	        scriptCharset: 'utf-8',
-	        success : function(data) {
-	            
-	        }
-	    });
-	    return false;
-	});
-	
-	$('#down').click(function(e) {
-	    $.ajax({
-	        type : 'POST',
-	        url : '@routes.GameController.ajax()',
-	        data : d,
-	        dataType : 'json',
-	        scriptCharset: 'utf-8',
-	        success : function(data) {
-	            
-	        }
-	    });
-	    return false;
-	});
-	
-    
-    </script>
-    
-    
-}
+				        }
+				    });
+				    return false;
+				});
+
+				$("#ib").click(function() { 
+					$.ajax({
+				        type : 'post',
+				        url : '@routes.GameController.ajax()',
+				        data : d,
+				        cache : false,
+				        dataType : 'json',
+				        scriptCharset: 'utf-8',
+				        success : function(data) {
+
+				        }
+				    });
+				    return false;
+				});
+			});
+
+		</script>
+		<style type="text/css">
+		</style>
+	</head>
+	<body>
+		<div id="container">
+			<div id="direction_button">
+				<img id="db" src="http://placehold.it/200x200">
+			</div>
+			<div id="item_button">
+				<img id="ib" src="http://placehold.it/200x200">
+			</div>
+			<div class="clear"></div>
+		</div>
+		<div class="clear"></div>
+		</div>
+	</body>
+</html>
