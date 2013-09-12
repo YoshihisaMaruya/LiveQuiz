@@ -27,7 +27,8 @@
 					role : "@role"
 				};
 
-				$("#db").click(function() {
+				$("#a").click(function() {
+					d["answer"] = 0;
 					$.ajax({
 				        type : 'post',
 				        url : '@routes.GameController.ajax()',
@@ -42,7 +43,40 @@
 				    return false;
 				});
 
-				$("#ib").click(function() { 
+				$("#b").click(function() { 
+					d["answer"] = 1;
+					$.ajax({
+				        type : 'post',
+				        url : '@routes.GameController.ajax()',
+				        data : d,
+				        cache : false,
+				        dataType : 'json',
+				        scriptCharset: 'utf-8',
+				        success : function(data) {
+
+				        }
+				    });
+				    return false;
+				});
+				
+				$("#c").click(function() { 
+					d["answer"] = 2;
+					$.ajax({
+				        type : 'post',
+				        url : '@routes.GameController.ajax()',
+				        data : d,
+				        cache : false,
+				        dataType : 'json',
+				        scriptCharset: 'utf-8',
+				        success : function(data) {
+
+				        }
+				    });
+				    return false;
+				});
+				
+				$("#d").click(function() { 
+					d["answer"] = 3;
 					$.ajax({
 				        type : 'post',
 				        url : '@routes.GameController.ajax()',
@@ -64,10 +98,16 @@
 	</head>
 	<body>
 		<div id="container">
-			<div id="direction_button">
+			<div id="a">
 				<img id="db" src="http://placehold.it/200x200">
 			</div>
-			<div id="item_button">
+			<div id="b">
+				<img id="ib" src="http://placehold.it/200x200">
+			</div>
+			<div id="c">
+				<img id="db" src="http://placehold.it/200x200">
+			</div>
+			<div id="d">
 				<img id="ib" src="http://placehold.it/200x200">
 			</div>
 			<div class="clear"></div>

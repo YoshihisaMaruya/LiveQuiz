@@ -171,7 +171,7 @@ object GameView extends Controller {
       u => Ok(views.html.gameview.index(u))
     },
       {
-        Redirect(routes.GameView.login)
+       Redirect(routes.GameView.login)
       })
   }
 

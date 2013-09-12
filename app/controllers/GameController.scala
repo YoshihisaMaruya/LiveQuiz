@@ -145,18 +145,18 @@ object GameController extends Controller {
 
   def ajax() = Action { implicit request =>
     request.body.asFormUrlEncoded.map{ b =>
-   	(b.get("roomname"),b.get("team"),b.get("username"),b.get("role")) match { //キャッシュから取得出来るけど、とりあえず
-   		case (Some(roomname),Some(team),Some(username),Some(role)) => {
+   	(b.get("roomname"),b.get("team"),b.get("username"),b.get("role"),b.get("answer")) match { //キャッシュから取得出来るけど、とりあえず
+   		case (Some(roomname),Some(team),Some(username),Some(role),Some(answer)) => {
    		  User.is({
    			  (rm, r, u, re) => {
-   			    GameRoomMonitor.forwardSignal(roomname.head, team.head, username.head, role.head)
+   			    GameRoomMonitor.forwardSignal(roomname.head, team.head, username.head, role.head,answer.head)
    			    Ok("Success")
    			  }
    		  }, {
    			  BadRequest("aa")
    		  })
    		}
-   		case (_,_,_,_) => BadRequest("aa")
+   		case (_,_,_,_,_) => BadRequest("aa")
      }
     }.getOrElse{
       BadRequest("aa")

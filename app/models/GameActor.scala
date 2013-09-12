@@ -36,7 +36,7 @@ case object YesExist
 case object NoExist
 
 //コントローラーからのシグナル
-case class Signal(team : String, username : String, role : String)
+case class Signal(team : String, username : String, role : String,answer : String)
 
 object GameRoomMonitor {
   import scala.collection.mutable.{ Set => MSet, Map => MMap }
@@ -45,8 +45,8 @@ object GameRoomMonitor {
 
   private val rooms : MMap[String, String] = MMap.empty //(name => path) actor pathを保持する為に必要
 
-  val teems = Set("1", "2")
-  val roles = Set("left", "right")
+  val teems = Set("1")
+  val roles = Set("1","2")
 
   /**
    * actorを作成
@@ -212,11 +212,11 @@ object GameRoomMonitor {
   /**
    * 信号をフォワード
    */
-  def forwardSignal(roomname : String, team : String, username : String, role : String) = {
+  def forwardSignal(roomname : String, team : String, username : String, role : String,answer : String) = {
     this.get(roomname).map { a =>
       Await.result(a ? IsExist(team, username), future_timeout) match {
         case YesExist => {
-          a ! Signal(team, username, role)
+          a ! Signal(team, username, role, answer)
           true
         }
         case s => {
@@ -286,6 +286,7 @@ class GameRoomActor(val roomname : String, teams : Set[String], roles : Set[Stri
             sender ! Joined(r)
           }
         }.getOrElse { //グープが存在しない
+          println("your team is " + team + " bad not exsited")
           sender ! CannotJoined
         }
       }
@@ -302,13 +303,15 @@ class GameRoomActor(val roomname : String, teams : Set[String], roles : Set[Stri
     case Joininig(group, username) => { //ユーザが参加したい
       sender ! CannotJoined //スタート状態なので駄目
     }
-    case Signal(team : String, username : String, role : String) => { //コントローラーからのシグナル
+    case Signal(team : String, username : String, role : String, answer : String) => { //コントローラーからのシグナル
       println("signal")
       channel.push(Json.toJson(Map(
         "status" -> "start",
         "username" -> username,
         "team" -> team,
-        "role" -> role)))
+        "role" -> role,
+        "answer" -> answer
+        )))
     }
     //共通メッセージ
     case Leaving(group, username, role) => {
