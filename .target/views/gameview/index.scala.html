@@ -55,11 +55,15 @@ tr.false {
 //ここからwebsocket
 var current_game_status = "waiting";
 var user_names = [];
+var user_answers = new Array();
 
 function mkAnswersString(){
 	var s = "解答 : ";
-	s += user_names[0] + "サン => " + user1_answers[current_question_number] + ", ";
-	s += user_names[1] + "サン => " + user2_answers[current_question_number] + "";
+	s += user_names[0] + "サン => " + user_answers[0][current_question_number] + ", ";
+	s += user_names[1] + "サン => " + user_answers[1][current_question_number] + ", ";
+	s += user_names[2] + "サン => " + user_answers[2][current_question_number] + ", ";
+	s += user_names[3] + "サン => " + user_answers[3][current_question_number] + ", ";
+	s += user_names[4] + "サン => " + user_answers[4][current_question_number] + ", ";
 	return s;
 }
 
@@ -80,20 +84,24 @@ $(function() {
         	current_game_status = "active";
         } else if(data.status == "enter"){ //ユーザが参加した。
         	user_names[data.role - 1] = data.username;
+        	user_answers[data.role - 1] = new Array();
         	$('.sync p').text(data.username + "さんが参加しました")
         	$('.sync p').fadeIn(500).delay(700).fadeOut(700);
         } else if(data.status == "start"){　//ゲーム開始状態
-        	if(data.role == "1"){
-				user1_answers[current_question_number] = questions[current_question_number].answers[data.answer];
-        	} else if(data.role == "2"){
-        		user2_answers[current_question_number] = questions[current_question_number].answers[data.answer];
-        	} else if(data.role == "3"){
-        		player2.moveLeft();
-        	}  else if(data.role == "4"){
-        		player2.moveRight();
+        	if(user_answers[data.role - 1][current_question_number] == null){ //まだ解答してないなら
+				user_answers[data.role - 1][current_question_number] = questions[current_question_number].answers[data.answer];
         	}
-        
-        	$('.answers p').text(mkAnswersString);
+        	
+        	//全員が解答終えたら、表示
+        	var i = 0;
+        	for(; i < 5; i = i + 1){
+        		if(user_answers[i][current_question_number] == null){
+        			break;
+        		}
+        	}
+        	if(i == 5){
+        		$('.answers p').text(mkAnswersString);
+        	}
         } else if(data.status == "stop"){ // TODO
         	
         }
@@ -104,11 +112,7 @@ $(function() {
 
 //answers の先頭が正答になるようにして下さい。選択肢はシャッフルして表示されます。
 
-var user1_answers = [];
-var user2_answers = [];
-var user3_answers = [];
-var user4_answers = [];
-
+var user_answers = [];
 document.onkeydown = function (e){
 	var key_code = e.keyCode;
 	//for user1
@@ -140,8 +144,13 @@ document.onkeydown = function (e){
 };
 
 var questions = [
-  {'question': '日本一高い山は？', 'answers': ['富士山', '愛鷹山', '天保山', '八ヶ岳']},
-  {'question': 'アイリちゃんの好きな花は？', 'answers': ['バラ', 'チューリップ', 'タンポポ', '百合']}
+  {'question': '達夫さんの誕生日は？', 'answers': ['4/24', '4/22', '4/28', '9/14']}//,
+  /*{'question': '島田さんの下の名前は？', 'answers': ['裕正', '弘昌', '博正', '達夫']},
+  {'question': '63-525にあるプリンタの型番は？', 'answers': ['C8800', 'C6688', 'D4413', 'X360']},
+  {'question': 'オリンピック誘致で１番目にプレゼンした国は？', 'answers': ['スペイン', 'トルコ', 'ブラジル', '日本']},
+  {'question': '86400秒は次のうちどれ？', 'answers': ['24時間', '12時間', '27時間', '36時間']},
+  {'question': '相川がモノマネできるドラゴンボールのキャラは？', 'answers': ['悟飯', 'ベジータ', 'ピッコロ大魔王', '悟空']},
+  {'question': '中島佳菜子の高校時代のあだ名は？', 'answers': ['キャンディー', 'ねーさん', '天保山', '八ヶ岳']}*/
  ];
 
 Array.prototype.shuffle = function() {
@@ -167,28 +176,17 @@ $(function() {
   showQuestion(0);
   
   $('#answer_button').click(function () {
-    /*var answer = -1;
-    $.each($('#answers input'), function (i, value) {
-      if ($(value).is(':checked')) {
-        answer = i;
-        return false;
-      }
-    });*/
-    
-    /*if (answer == -1) {
-      $('#warning').slideDown();
-      return false;
-    }*/
-    if(current_game_status != "active"){
-    	return false;
-    }
-    if((user1_answers.length - 1) != current_question_number){
-    	return false;
-    }
-    if((user2_answers.length - 1) != current_question_number){
+    if(current_game_status != "active"){ //ゲーム状態がアクティブじゃなければ
     	return false;
     }
     
+    var i = 0;
+	for(; i < 5; i = i + 1){ //まだ答えてない人が居るなら
+		if(user_answers[i][current_question_number] == null){
+			return false;
+		}
+	}
+	
     $('.answers p').text("解答 : ");
     $('#warning').slideUp();
     
@@ -214,32 +212,99 @@ function showQuestion(question_number) {
 }
       
 function showResult() {
+	var score = [0,0,0,0,0];
   $('#question_view').hide();
   
   $('.user1 #username').text(user_names[0] + "サン");
   $('.user2 #username').text(user_names[1] + "サン");
+  $('.user3 #username').text(user_names[2] + "サン");
+  $('.user4 #username').text(user_names[3] + "サン");
+  $('.user5 #username').text(user_names[4] + "サン");
+  
+  $('.score #user1').text(user_names[0] + "サン");
+  $('.score #user2').text(user_names[1] + "サン");
+  $('.score #user3').text(user_names[2] + "サン");
+  $('.score #user4').text(user_names[3] + "サン");
+  $('.score #user5').text(user_names[4] + "サン");
   
   $.each(questions, function (i, question) {
-    var is_true = user1_answers[i] === question.true_answer;
+    var is_true = user_answers[0][i] === question.true_answer;
+    if(is_true){
+    	score[0] = score[0] + 1;
+    }
     $('.user1 #results').append($('<tr/>')
                          .addClass(is_true ? 'true' : 'false')
                          .append($('<th/>').text(i + 1))
-                         .append($('<td/>').text(user1_answers[i]))
+                         .append($('<td/>').text(user_answers[0][i]))
                          .append($('<td/>').text(question.true_answer))
                          .append($('<td/>').text(is_true ? '○' : '×'))
       );
   });
   
   $.each(questions, function (i, question) {
-	    var is_true = user2_answers[i] === question.true_answer;
+	    var is_true = user_answers[1][i] === question.true_answer;
+	    if(is_true){
+	    	score[1] = score[1] + 1;
+	    }
 	    $('.user2 #results').append($('<tr/>')
 	                         .addClass(is_true ? 'true' : 'false')
 	                         .append($('<th/>').text(i + 1))
-	                         .append($('<td/>').text(user2_answers[i]))
+	                         .append($('<td/>').text(user_answers[1][i]))
 	                         .append($('<td/>').text(question.true_answer))
 	                         .append($('<td/>').text(is_true ? '○' : '×'))
 	      );
 	  });
+  
+  $.each(questions, function (i, question) {
+	  if(is_true){
+	    	score[2] = score[2] + 1;
+	    }
+	    var is_true = user_answers[2][i] === question.true_answer;
+	    $('.user3 #results').append($('<tr/>')
+	                         .addClass(is_true ? 'true' : 'false')
+	                         .append($('<th/>').text(i + 1))
+	                         .append($('<td/>').text(user_answers[2][i]))
+	                         .append($('<td/>').text(question.true_answer))
+	                         .append($('<td/>').text(is_true ? '○' : '×'))
+	      );
+	  });
+  
+  $.each(questions, function (i, question) {
+	    var is_true = user_answers[3][i] === question.true_answer;
+	    if(is_true){
+	    	score[3] = score[3] + 1;
+	    }
+	    $('.user4 #results').append($('<tr/>')
+	                         .addClass(is_true ? 'true' : 'false')
+	                         .append($('<th/>').text(i + 1))
+	                         .append($('<td/>').text(user_answers[3][i]))
+	                         .append($('<td/>').text(question.true_answer))
+	                         .append($('<td/>').text(is_true ? '○' : '×'))
+	      );
+	  });
+  
+  $.each(questions, function (i, question) {
+	    var is_true = user_answers[4][i] === question.true_answer;
+	    if(is_true){
+	    	score[4] = score[4] + 1;
+	    }
+	    $('.user5 #results').append($('<tr/>')
+	                         .addClass(is_true ? 'true' : 'false')
+	                         .append($('<th/>').text(i + 1))
+	                         .append($('<td/>').text(user_answers[4][i]))
+	                         .append($('<td/>').text(question.true_answer))
+	                         .append($('<td/>').text(is_true ? '○' : '×'))
+	      );
+	  });
+  
+  $('.score #results').append($('<tr/>')
+          .addClass('true')
+          .append($('<th/>').text(score[0]))
+          .append($('<td/>').text(score[1]))
+          .append($('<td/>').text(score[2]))
+          .append($('<td/>').text(score[3]))
+          .append($('<td/>').text(score[4]))
+	);
                                  
   $('#result_view').show();
 }
@@ -272,6 +337,22 @@ function showResult() {
 	</div>
 	<div id="result_view" style="display: none">
 		<h2>結果</h2>
+		<div class="score">
+		<p>得点</p>
+		<table>
+				<thead>
+					<tr>
+						<th id="user1">問題番号</th>
+						<th id="user2">あなたの答え</th>
+						<th id="user3">正しい答え</th>
+						<th id="user4">正誤</th>
+						<th id="user5">正誤</th>
+					</tr>
+				</thead>
+				<tbody id="results">
+				</tbody>
+		  </table>
+		</div>
 		<div class="user1">
 			<p id="username"></p>
 			<table>
@@ -288,6 +369,51 @@ function showResult() {
 		  </table>
 		</div>
 		<div class="user2">
+			<p id="username"></p>
+			<table>
+				<thead>
+					<tr>
+						<th>問題番号</th>
+						<th>あなたの答え</th>
+						<th>正しい答え</th>
+						<th>正誤</th>
+					</tr>
+				</thead>
+				<tbody id="results">
+				</tbody>
+			</table>
+		</div>
+		<div class="user3">
+			<p id="username"></p>
+			<table>
+				<thead>
+					<tr>
+						<th>問題番号</th>
+						<th>あなたの答え</th>
+						<th>正しい答え</th>
+						<th>正誤</th>
+					</tr>
+				</thead>
+				<tbody id="results">
+				</tbody>
+			</table>
+		</div>
+		<div class="user4">
+			<p id="username"></p>
+			<table>
+				<thead>
+					<tr>
+						<th>問題番号</th>
+						<th>あなたの答え</th>
+						<th>正しい答え</th>
+						<th>正誤</th>
+					</tr>
+				</thead>
+				<tbody id="results">
+				</tbody>
+			</table>
+		</div>
+		<div class="user5">
 			<p id="username"></p>
 			<table>
 				<thead>

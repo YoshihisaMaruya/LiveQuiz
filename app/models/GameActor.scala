@@ -46,7 +46,7 @@ object GameRoomMonitor {
   private val rooms : MMap[String, String] = MMap.empty //(name => path) actor pathを保持する為に必要
 
   val teems = Set("1")
-  val roles = Set("1","2")
+  val roles = Set("1","2","3","4","5")
 
   /**
    * actorを作成
